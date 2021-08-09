@@ -1,36 +1,41 @@
-# SideScroller1:
-
 from cmu_112_graphics import *
-import random
 
-def appStarted(app):
-    app.scrollX = 0
-    app.dots = [(random.randrange(app.width),
-                  random.randrange(60, app.height)) for _ in range(50)]
+def appStarted(app): 
+    app.messages = ['appStarted']
+
+def appStopped(app):
+    app.messages.append('appStopped')
+    print('appStopped!')
 
 def keyPressed(app, event):
-    if (event.key == "Left"):    app.scrollX -= 5
-    elif (event.key == "Right"): app.scrollX += 5
+    app.messages.append('keyPressed: ' + event.key)
+
+def keyReleased(app, event):
+    app.messages.append('keyReleased: ' + event.key)
+
+def mousePressed(app, event):
+    app.messages.append(f'mousePressed at {(event.x, event.y)}')
+
+def mouseReleased(app, event):
+    app.messages.append(f'mouseReleased at {(event.x, event.y)}')
+
+def mouseMoved(app, event):
+    app.messages.append(f'mouseMoved at {(event.x, event.y)}')
+
+def mouseDragged(app, event):
+    app.messages.append(f'mouseDragged at {(event.x, event.y)}')
+
+def sizeChanged(app):
+    app.messages.append(f'sizeChanged to {(app.width, app.height)}')
 
 def redrawAll(app, canvas):
-    # draw the player fixed to the center of the scrolled canvas
-    cx, cy, r = app.width/2, app.height/2, 10
-    canvas.create_oval(cx-r, cy-r, cx+r, cy+r, fill='cyan')
+    font = 'Arial 20 bold'
+    canvas.create_text(app.width/2,  30, text='Events Demo', font=font)
+    n = min(10, len(app.messages))
+    i0 = len(app.messages)-n
+    for i in range(i0, len(app.messages)):
+        canvas.create_text(app.width/2, 100+50*(i-i0),
+                           text=f'#{i}: {app.messages[i]}',
+                           font=font)
 
-    # draw the dots, shifted by the scrollX offset
-    for (cx, cy) in app.dots:
-        cx -= app.scrollX  # <-- This is where we scroll each dot!!!
-        canvas.create_oval(cx-r, cy-r, cx+r, cy+r, fill='lightGreen')
-
-    # draw the x and y axes
-    x = app.width/2 - app.scrollX # <-- This is where we scroll the axis!
-    y = app.height/2
-    canvas.create_line(x, 0, x, app.height)
-    canvas.create_line(0, y, app.width, y)
-
-    # draw the instructions and the current scrollX
-    x = app.width/2
-    canvas.create_text(x, 20, text='Use arrows to move left or right')
-    canvas.create_text(x, 40, text=f'app.scrollX = {app.scrollX}')
-
-runApp(width=300, height=300)
+runApp(width=600, height=600)
