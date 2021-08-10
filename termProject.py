@@ -1,91 +1,51 @@
 from cmu_112_graphics import *
 import random
+import player as pl
 
-class Player(object):
-    def __init__(self, row, col):
-        self.row = row
-        self.col = col
-        self.path = []
+def initializeQbert(app):
+## make a new qbert, called whenever a round or level is completed
+    app.qbert = pl.Player(6, 0)
+
+def initializeRedEnemy(app):
+## make a new red enemy, initializing starting cube at random
+    randRow = random.randint(0,5)
+    randCol = random.randint(0,6-randRow)
+    app.redEnemy = pl.Player(randRow, randCol)
+    #app.redEnemy.path.append((randRow, randCol)) # not used yet
+
+def initializeGreenEnemy(app):
+    randRow = random.randint(0,5)
+    randCol = random.randint(0,6-randRow)
+    app.greenEnemy = pl.Player(randRow, randCol)
+
+def restartApp(app):
+    ## gameplay
+    app.score = 0
+    app.level = 1
+    app.round = 1
+    app.roundWon = False
+    app.pauseGame = False
+    app.gameOver = False
+
+    ## create qbert and creatures
+    initializeQbert(app)
+    initializeRedEnemy(app)
+    initializeGreenEnemy(app)
+
+def appStarted(app):
+    app.timerDelay = 1000
+
+    ## cube 
+    ## ... coords of top corner of top cube surface 
+    # cx = app.width//2
+    # cy = app.height//2 - 3*app.cubHt
+    app.defaultTopColor = 'RoyalBlue3'
+    app.cubWd = app.width//12
+    app.cubHt = app.height//12
+    app.cubeTopMapping = createCubeTopDict(app)
+    restartApp(app)
     
-    def randomMove(self):
-    ## piece makes a single random move depending on it's current location
-        ## if on bottom row, (jump off screen and) appear in new random spot OK
-        if self.row == 0: # case 1
-            randRow = random.randint(3,5)
-            randCol = random.randint(0,6-randRow)
-            self.row = randRow
-            self.col = randCol
-        ## else not on bottom row
-        else:
-            ## not on bottom row, on top cube: OK
-            if self.row == 6: # case 2
-                rowIncrement = random.choice([-1,0])
-                self.row += rowIncrement
-                if rowIncrement == 0:
-                    self.col += 0
-                else:
-                    self.col += 1
-            ## not on bottom row, not on top cube 
-            else: 
-                ## not on bottom row, not on top cube, on left edge
-                if self.col == 0: # case 3
-                    rowIncrement = random.choice([-1,1])
-                    self.row += rowIncrement
-                    if rowIncrement == 1:
-                        self.col += 0
-                    else:
-                        self.col += random.choice([0,1])
-                ## not on bottom row, not on top cube, on right edge 
-                elif self.onRightEdge(): # case 4
-                    rowIncrement = random.choice([-1,1])
-                    self.row += rowIncrement
-                    if rowIncrement == 1:
-                        self.col -= 1
-                    else:
-                        self.col += random.choice([0,1])
-                ## not on bottom row, not on top cube, not on left or right edge
-                elif not self.onRightEdge() and self.col != 0: # case 5
-                    rowIncrement = random.choice([-1,1])
-                    self.row += rowIncrement
-                    if rowIncrement == 1:
-                        self.col += random.choice([-1,0])
-                    else:
-                        self.col += random.choice([0,1])
-        
-    def onRightEdge(self):
-        onRightEdge = ((self.row == 6 and self.col == 0) or
-                       (self.row == 5 and self.col == 1) or
-                       (self.row == 4 and self.col == 2) or
-                       (self.row == 3 and self.col == 3) or
-                       (self.row == 2 and self.col == 4) or
-                       (self.row == 1 and self.col == 5) or
-                       (self.row == 0 and self.col == 6))
-        return onRightEdge
-
-    def isCollision(self, other):
-        return ((self.row, self.col) == (other.row, other.col))
-
-def setTopColor(app, row, col):
-## returns the color of the top of the cube located at row, col
-## colors depends on round and level
-    if app.level == 1:
-        if app.round == 1:
-            if (row, col) in app.qbert.path and not app.moveZero:
-                return('yellow')
-            else:
-                return(app.defaultTopColor)
-        elif app.round == 2:
-            if (row, col) in app.qbert.path:
-                return('violet')
-            else:
-                return(app.defaultTopColor)
-        elif app.round == 3:
-            if (row, col) in app.qbert.path:
-                return('chartreuse2')
-            else:
-                return(app.defaultTopColor)
-
-
+    
 def createCubeTopDict(app):
 ## creates a dict mapping cube row, column location to top center point of cube
 ## (row, col) --> (cx, cy).  
@@ -100,106 +60,152 @@ def createCubeTopDict(app):
             cubeTopDict[(row,col)] = (cx,cy)
     return cubeTopDict 
 
-def initializeQbert(app):
-    app.qbert = Player(6, 0)
-    app.qbert.path.append((6,0))
-    app.moveZero = True
-    
-def appStarted(app):
-    app.timerDelay = 100
-    app.pauseGame = False
-    ## score & round, level completion
-    app.score = 0
-    app.level = 1
-    app.round = 1
-    app.roundWon = False
-    ## cube 
-    app.defaultTopColor = 'RoyalBlue3'
-    app
-    app.cubWd = app.width//12
-    app.cubHt = app.height//12
-    app.cubeTopMapping = createCubeTopDict(app)
-    ## ... coords of top corner of top cube surface
-    # cx = app.width//2
-    # cy = app.height//2 - 3*app.cubHt
-
-    ## create qbert instance and initialize path attribute
-    initializeQbert(app)
-
-    ## create red Blob instance, initialize starting location 
-    ## in random location in between rows [1,5] exclusive
-    randRow = random.randint(1,5)
-    randCol = random.randint(0,6-randRow)
-    app.redEnemy = Player(randRow, randCol)
-    app.redEnemy.path.append((randRow, randCol))
-
 def updateScore(app):
     if (app.qbert.row, app.qbert.col) not in app.qbert.path:
         app.score += 25
 
+def manageCollision(app):
+## if qbert hops on red enemy, set alive flag to False, returns None
+    if app.qbert.isCollision(app.redEnemy):
+        app.redEnemy.alive = False
+    elif app.qbert.isCollision(app.greenEnemy):
+        app.greenEnemy.alive = False
+
 def keyPressed(app, event):
-## recall app.cubeTopDict[(row,col)] = (cx,cy)
-## update app.qbert.row and app.qbert.col
+## update qberts location, pause/unpause, begin new level, autoplay (nyi)
     previousRow = app.qbert.row
     previousCol = app.qbert.col
+
+    ## check if game is to be paused or unpaused
     if event.key == 'p':
         app.pauseGame = not app.pauseGame
-    if not app.pauseGame:
+
+    ## if game is not paused or over, continue
+    if not app.pauseGame and not app.gameOver:
+        ## enter used to initialize new round only here
         if event.key == 'Enter':
             app.roundWon = False
-        if event.key == 'i':
+        ## check for movement keys
+        if event.key == 'i': # up-right
             if not app.qbert.onRightEdge():
                 app.qbert.row += 1
-                app.moveZero = False
                 updateScore(app)
-        elif event.key == 'u':
-            print("qbert row, col = ", (app.qbert.row, app.qbert.col))
+                manageCollision(app)
+        elif event.key == 'u': # up-left
             if app.qbert.col != 0 and app.qbert.row != 6:
                 app.qbert.row += 1
                 app.qbert.col -= 1
-                app.moveZero = False
                 updateScore(app)
-        elif event.key == 'j':
+                manageCollision(app)
+        elif event.key == 'j': # down-left
             if app.qbert.row > 0:
                 app.qbert.row -= 1
                 app.qbert.col += 1
-                app.moveZero = False
                 updateScore(app)
-        elif event.key == 'h':
+                manageCollision(app)
+        elif event.key == 'h': # down-right
             if app.qbert.row > 0:
                 app.qbert.row -= 1
-                app.moveZero = False
                 updateScore(app)
+                manageCollision(app)
         ## store cube top that qbert has touched - make sure not to double count
         ## current cube if qbert is trying to make illegal move
         if ((app.qbert.row, app.qbert.col) != (previousRow, previousCol) and
-            (app.qbert.row, app.qbert.col) not in app.qbert.path and
-            not app.moveZero):
+            (app.qbert.row, app.qbert.col) not in app.qbert.path):
             app.qbert.path.append((app.qbert.row, app.qbert.col))     
-        print(app.qbert.path)
+        #print(app.qbert.path)
+
+    ## if game is over, restart
+    elif app.gameOver:
+        if event.key == 'Enter':
+            restartApp(app)
 
 def newRound(app):
     initializeQbert(app)
+    initializeRedEnemy(app)
+    initializeGreenEnemy(app)
     app.round += 1
-
-
             
-def timerFired(app):
-    if app.score < 0:
-        app.gameOver = True
-        ## implement new screen message and hit 'Enter' to start new game
-        #restartApp(app) or something..
-    if not app.pauseGame:
-        # check if round is over
-        if len(app.qbert.path) == 28:
+def timerFired(app):    
+    if not app.pauseGame and not app.gameOver:
+
+        ## if score goes negative, game is over
+        if app.score < 0:
+            app.gameOver = True
+
+        ## if qbert touches all cube tops, round is won
+        elif len(app.qbert.path) == 28:
             app.roundWon = True
             newRound(app)
+
+        ## if qbert killed red enemy, make a new one
+        elif app.redEnemy.alive == False:
+            initializeRedEnemy(app)
+
+        ## if qbert killed green enemy, make a new one
+        elif app.greenEnemy.alive == False:
+            initializeGreenEnemy(app)
+
+        ## otherwise game continues    
         else:
+            ## move red  & green enemies 
             app.redEnemy.randomMove()
-            if app.qbert.isCollision(app.redEnemy):
+            app.greenEnemy.randomMove()
+
+            ## if red enemy goes onto cube qbert is on
+            if (app.qbert.isCollision(app.redEnemy) or
+                app.qbert.isCollision(app.greenEnemy)):
                 app.score -=50
-                print("Collision!!!!!")
+
+def difficultyCondition(app):
+## return True if a certain difficulty condition is met depending on round num
+## difficulty condition 4: on left or right edge
+## difficulty condition 3: on bottom row
+## difficulty condition 2: on any corner
+## difficulty condition 1: on center block (2,2)
+    if app.round == 1:
+        return((app.greenEnemy.row,app.greenEnemy.col) == (2,2))
+    elif app.round == 2:
+        return((app.greenEnemy.row,app.greenEnemy.col) == (0,0) or
+               (app.greenEnemy.row,app.greenEnemy.col) == (0,6) or
+               (app.greenEnemy.row,app.greenEnemy.col) == (6,0))
+    elif app.round == 3:
+        return(app.greenEnemy.row == 0)
+    elif app.round == 4:
+        return(app.greenEnemy.onRightEdge() or app.greenEnemy.col==0)
+
+def setTopColor(app, row, col):
+## returns the color of the top of the cube located at row, col
+## colors depends on round and level
+## get rid of if/else by using list and indexing..
+    if app.level == 1:
+        if app.round == 1:
+            ## if greenEnemy on square qbert touched according to difficulty 1
+            if ((row, col) in app.qbert.path and 
+                (row, col) == (app.greenEnemy.row, app.greenEnemy.col) and
+                difficultyCondition(app)):
+                app.qbert.path.remove((row,col))
+                return(app.defaultTopColor)
+            ## else if only qbert has touched, make yello
+            elif (row, col) in app.qbert.path:
+            #if (row, col) in app.qbert.path:
+                return('yellow')
+            else:
+                return(app.defaultTopColor)
+        elif app.round == 2:
+            if (row, col) in app.qbert.path:
+                return('violet')
+            else:
+                return(app.defaultTopColor)
+        elif app.round == 3:
+            if (row, col) in app.qbert.path:
+                return('chartreuse2')
+            else:
+                return(app.defaultTopColor)
     
+    print("app.qbert.path AFTER ===== ", app.qbert.path)
+
+
 def drawBackground(app, canvas):
 ## draw backsplash including score, level and round
     dy = app.height//28
@@ -255,7 +261,6 @@ def drawPyramid(app, canvas):
 ## draw pyramid of cubes starting from bottom row and working up
 ## double for-loop structure and cx, cy positioning adapted from:
 ## https://github.com/Wireframe-Magazine/Wireframe-42/blob/master/source-code-qbert/qbert.py
- 
     for row in range(0, 7):
         for col in range(0,7-row):
             cx = 0.26*app.width + 0.08*app.width*col + 0.04*app.height*row
@@ -276,11 +281,15 @@ def drawQbert(app, canvas):
     #         canvas.create_oval(x-rad, y-rad, x+rad, y+rad, fill = 'orange', 
     #                    width = 0)
                
-def drawRedEnemy(app, canvas):
-    x, y = app.cubeTopMapping[(app.redEnemy.row,app.redEnemy.col)]
-    rad = app.width//52
-    canvas.create_oval(x-rad, y-rad, x+rad, y+rad, fill = 'red', 
-                       width = 0)
+def drawEnemy(app, canvas, enemy):
+    if enemy=='red':
+        x, y = app.cubeTopMapping[(app.redEnemy.row,app.redEnemy.col)]
+        rad = app.width//52
+    elif enemy=='green':
+        x, y = app.cubeTopMapping[(app.greenEnemy.row,app.greenEnemy.col)]
+        rad = app.width//48
+    
+    canvas.create_oval(x-rad, y-rad, x+rad, y+rad, fill = enemy, width = 0)
 
 def drawRoundWon(app, canvas):
     canvas.create_text(app.width//2, app.height//8,
@@ -292,14 +301,39 @@ def drawRoundWon(app, canvas):
                        fill = 'white',
                        font = 'Helvetica 24 bold')
 
+def drawGameOver(app, canvas):
+    canvas.create_text(app.width//2, app.height//8,
+                       text = 'Game Over!!!!',
+                       fill = 'chartreuse',
+                       font = 'Helvetica 28 bold')
+    canvas.create_text(app.width//2, app.height//8 + app.height//20,
+                       text = f'Press Enter to restart...',
+                       fill = 'hot pink',
+                       font = 'Helvetica 24 bold italic')
+
+def drawKillMessage(app, canvas):
+    canvas.create_text(app.width//8, app.height//2, 
+                       text = 'Red Enemy Destroyed!', 
+                       fill = 'red2', 
+                       font = 'Helvetica 16 bold')
+                       #angle = 45)
 
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
     drawPyramid(app, canvas)
     drawQbert(app, canvas)
-    drawRedEnemy(app, canvas)
+
+    if app.redEnemy.alive:
+        drawEnemy(app, canvas, 'red')
+
+    if app.greenEnemy.alive:
+        drawEnemy(app, canvas, 'green')
+
     if app.roundWon:
         drawRoundWon(app, canvas)
-    
+    elif app.gameOver:
+        drawGameOver(app, canvas)
+    elif not app.redEnemy.alive: 
+        drawKillMessage(app, canvas)
 runApp(width=775, height=775)
 
