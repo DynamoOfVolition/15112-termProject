@@ -1,18 +1,42 @@
 
 from cmu_112_graphics import *
 
-def appStarted(app):
-    colorList = ['yellow', 'violet', 'chartreuse2', 'deep pink', 'tomato']
-    app.topColor = {}
-    for i in range(1,len(colorList)+1):
-        app.topColor[i] = colorList[i-1]
-    print(app.topColor)
 
-# def redrawAll(app, canvas):
-#     canvas.create_text(app.width//8, app.height//2, 
-#                        text = 'Red Enemy Destroyed!', 
-#                        fill = 'red2', 
-#                        font = 'Helvetica 16 bold',
-#                        angle = 45)
 
-runApp(width=775, height=775)
+mapping = {(0, 0): (201.5, 471.75), (0, 1): (263.5, 471.75), (0, 2): (325.5, 471.75), 
+           (0, 3): (387.5, 471.75), (0, 4): (449.5, 471.75), (0, 5): (511.5, 471.75), 
+           (0, 6): (573.5, 471.75), (1, 0): (232.5, 425.25), (1, 1): (294.5, 425.25), 
+           (1, 2): (356.5, 425.25), (1, 3): (418.5, 425.25), (1, 4): (480.5, 425.25), 
+           (1, 5): (542.5, 425.25), (2, 0): (263.5, 378.75), (2, 1): (325.5, 378.75), 
+           (2, 2): (387.5, 378.75), (2, 3): (449.5, 378.75), (2, 4): (511.5, 378.75), 
+           (3, 0): (294.5, 332.25), (3, 1): (356.5, 332.25), (3, 2): (418.5, 332.25), 
+           (3, 3): (480.5, 332.25), (4, 0): (325.5, 285.75), (4, 1): (387.5, 285.75), 
+           (4, 2): (449.5, 285.75), (5, 0): (356.5, 239.25), (5, 1): (418.5, 239.25), 
+           (6, 0): (387.5, 192.75)}
+
+## (6, 0): (387.5, 192.75) --> (5, 0): (356.5, 239.25)
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+P0, P1, P2 = np.array([
+	[0, 0],
+	[2, 4],
+	[5, 3]
+])
+
+# define bezier curve
+P = lambda t: (1 - t)**2 * P0 + 2 * t * (1 - t) * P1 + t**2 * P2
+
+# evaluate the curve on [0, 1] sliced in 50 points
+points = np.array([P(t) for t in np.linspace(0, 1, 50)])
+
+# get x and y coordinates of points separately
+x, y = points[:,0], points[:,1]
+
+# plot
+# plt.plot(x, y, 'b-')
+# plt.plot(*P0, 'r.')
+# plt.plot(*P1, 'r.')
+# plt.plot(*P2, 'r.')
+# plt.show()

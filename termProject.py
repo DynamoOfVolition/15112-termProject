@@ -4,24 +4,28 @@ import player as pl
 
 def initializeQbert(app):
 ## make a new qbert, called whenever a round or level is completed
-    app.qbert = pl.Player(6, 0)
+    (x, y) = app.cubeTopMapping[(6,0)]
+    app.qbert = pl.Player(6, 0, 6, 0, x, y)
 
 def initializeRedEnemy(app):
 ## make a new red enemy, initializing starting cube at random
     randRow = random.randint(0,5)
     randCol = random.randint(0,6-randRow)
-    app.redEnemy = pl.Player(randRow, randCol)
+    (x, y) = app.cubeTopMapping[(randRow,randCol)]
+    app.redEnemy = pl.Player(randRow, randCol, randRow, randCol, x, y)
     #app.redEnemy.path.append((randRow, randCol)) # not used yet
 
 def initializeGreenEnemy(app):
     randRow = random.randint(0,5)
     randCol = random.randint(0,6-randRow)
-    app.greenEnemy = pl.Player(randRow, randCol)
+    (x, y) = app.cubeTopMapping[(randRow,randCol)]
+    app.greenEnemy = pl.Player(randRow, randCol, randRow, randCol, x, y)
 
 def initializeSnake(app):
     randRow = random.randint(0,5)
     randCol = random.randint(0,6-randRow)
-    app.snake = pl.Player(randRow, randCol)
+    (x, y) = app.cubeTopMapping[(randRow,randCol)]
+    app.snake = pl.Player(randRow, randCol, randRow, randCol, x, y)
 
 def restartApp(app):
     ## gameplay
@@ -39,7 +43,7 @@ def restartApp(app):
     initializeSnake(app)
 
 def appStarted(app):
-    app.timerDelay = 800
+    app.timerDelay = 50
 
     ## cube 
     ## ... coords of top corner of top cube surface 
@@ -49,6 +53,7 @@ def appStarted(app):
     app.cubWd = app.width//12
     app.cubHt = app.height//12
     app.cubeTopMapping = createCubeTopDict(app)
+    print(app.cubeTopMapping)
     ## top colors
     colorList = ['yellow', 'violet', 'chartreuse2', 'deep pink', 'tomato']
     app.topColor = {}
@@ -77,6 +82,15 @@ def updateScore(app):
     if (app.qbert.row, app.qbert.col) not in app.qbert.path:
         app.score += 25
 
+def cubicBezier(t, p0, p1, p2):
+## Bezier curve function and code adapted from 
+## https://towardsdatascience.com/bézier-curve-bfffdadea212
+
+    ## returns a point along a cubic bezier curve 
+    px = (1-t)**2*p0[0] + 2*t*(1-t)*p1[0] + t**2*p2[0]
+    py = (1-t)**2*p0[1] + 2*t*(1-t)*p1[1] + t**2*p2[1]
+    return (px, py)
+
 def manageCollision(app):
 ## if qbert hops on any enemy, set their alive flag to False, add 10 to score
     if app.qbert.isCollision(app.redEnemy):
@@ -91,8 +105,10 @@ def manageCollision(app):
 
 def keyPressed(app, event):
 ## update qberts location, pause/unpause, begin new level, (autoplay tbd))
-    previousRow = app.qbert.row
-    previousCol = app.qbert.col
+    # previousRow = app.qbert.rowStart
+    # previousCol = app.qbert.colStart
+    app.qbert.rowStart = app.qbert.rowStop
+    app.qbert.colStart = app.qbert.colStop
 
     ## check if game is to be paused or unpaused
     if event.key == 'p':
@@ -106,31 +122,52 @@ def keyPressed(app, event):
         ## check for movement keys
         if event.key == 'i': # up-right
             if not app.qbert.onRightEdge():
-                app.qbert.row += 1
-                updateScore(app)
-                manageCollision(app)
+                app.qbert.moveStart = True
+                # app.qbert.row += 1
+                # app.qbert.col += 0
+                app.qbert.rowStop = app.qbert.rowStart + 1
+                app.qbert.colStop = app.qbert.colStart
+                #updateScore(app)
+                #manageCollision(app)
         elif event.key == 'u': # up-left
-            if app.qbert.col != 0 and app.qbert.row != 6:
-                app.qbert.row += 1
-                app.qbert.col -= 1
-                updateScore(app)
-                manageCollision(app)
+            if app.qbert.colStart != 0 and app.qbert.rowStart != 6:
+                app.qbert.moveStart = True
+            #if app.qbert.col != 0 and app.qbert.row != 6:
+                #app.qbert.row += 1
+                #app.qbert.col -= 1
+                app.qbert.rowStop = app.qbert.rowStart + 1
+                app.qbert.colStop = app.qbert.colStart - 1
+                #updateScore(app)
+                #manageCollision(app)
         elif event.key == 'j': # down-left
-            if app.qbert.row > 0:
-                app.qbert.row -= 1
-                app.qbert.col += 1
-                updateScore(app)
-                manageCollision(app)
+            if app.qbert.rowStart > 0:
+                app.qbert.moveStart = True
+            #if app.qbert.row > 0:
+                #app.qbert.row -= 1
+                #app.qbert.col += 1
+                app.qbert.rowStop = app.qbert.rowStart - 1
+                app.qbert.colStop = app.qbert.colStart + 1
+                #updateScore(app)
+                #manageCollision(app)
         elif event.key == 'h': # down-right
-            if app.qbert.row > 0:
-                app.qbert.row -= 1
-                updateScore(app)
-                manageCollision(app)
+            #if app.qbert.row > 0:
+            if app.qbert.rowStart > 0:
+                app.qbert.moveStart = True
+                #app.qbert.row -= 1
+                #app.qbert.col += 0
+                app.qbert.rowStop = app.qbert.rowStart - 1
+                app.qbert.colStop = app.qbert.colStart 
+                #updateScore(app)
+                #manageCollision(app)
         ## store cube top that qbert has touched - make sure not to double count
         ## current cube if qbert is trying to make illegal move
-        if ((app.qbert.row, app.qbert.col) != (previousRow, previousCol) and
-            (app.qbert.row, app.qbert.col) not in app.qbert.path):
-            app.qbert.path.append((app.qbert.row, app.qbert.col))     
+        # if ((app.qbert.row, app.qbert.col) != (previousRow, previousCol) and
+        #     (app.qbert.row, app.qbert.col) not in app.qbert.path):
+        #     app.qbert.path.append((app.qbert.row, app.qbert.col))     
+        if ((app.qbert.rowStop, app.qbert.colStop) != 
+            (app.qbert.rowStart, app.qbert.colStart) and
+            (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path):
+            app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop))     
         #print(app.qbert.path)
 
     ## if game is over, restart
@@ -171,16 +208,24 @@ def timerFired(app):
 
         ## otherwise game continues    
         else:
+            if app.qbert.moveStart:
+                if app.qbert.drawCount < 11:
+                    app.qbert.drawCount += 1
+                elif app.qbert.drawCount == 11:
+                    app.qbert.moveStart = False
+                    app.qbert.drawCount = 1
+            #print("move qbert by increment:  ", app.qbert.drawCount)
+
             ## move red  & green enemies 
-            app.redEnemy.randomMove()
-            app.greenEnemy.randomMove()
-            app.qbert.followMove(app.snake)
+            #app.redEnemy.randomMove()
+            #app.greenEnemy.randomMove()
+            #app.qbert.followMove(app.snake)
 
             ## if enemy goes onto cube qbert is on deduct points
-            if (app.qbert.isCollision(app.redEnemy) or
-                app.qbert.isCollision(app.greenEnemy) or
-                app.qbert.isCollision(app.snake)):
-                app.score -=50
+            # if (app.qbert.isCollision(app.redEnemy) or
+            #     app.qbert.isCollision(app.greenEnemy) or
+            #     app.qbert.isCollision(app.snake)):
+            #     app.score -=50
 
 def difficultyCondition(app):
 ## return True if a certain difficulty condition is met depending on round num
@@ -210,8 +255,9 @@ def setTopColor(app, row, col):
 ## returns the color of the top of the cube located at row, col
     ## if greenEnemy touched one of qberts squares (according to difficulty)
     if ((row, col) in app.qbert.path and 
-        (row, col) == (app.greenEnemy.row, app.greenEnemy.col) and
-        difficultyCondition(app)):
+        #(row, col) == (app.greenEnemy.row, app.greenEnemy.col) and
+        (row, col) == (app.greenEnemy.rowStop, app.greenEnemy.colStop) ):
+         #and difficultyCondition(app)):
         app.qbert.path.remove((row,col))
         return(app.defaultTopColor)
     ## else if only qbert has touched, change color
@@ -258,7 +304,8 @@ def drawCube(app, canvas, cx, cy, row, col):
     pt7X = pt3X
     pt7Y = pt6Y
 
-    topColor = setTopColor(app, row, col)
+    topColor = 'RoyalBlue3'
+    #topColor = setTopColor(app, row, col)
 
     ## top
     canvas.create_polygon(pt1X, pt1Y, pt2X, pt2Y, pt3X, pt3Y, pt4X, pt4Y,
@@ -283,18 +330,50 @@ def drawPyramid(app, canvas):
             drawCube(app, canvas, cx, cy, row, col)
 
 def drawQbert(app, canvas):
+## Bezier curve function and code adapted from 
+## https://towardsdatascience.com/bézier-curve-bfffdadea212
+    print("===")
+    print("drawing Qbert")
+    
     ## draw just one
-    # app.cubeTopDict[(row,col)] = (cx,cy)
-    x, y = app.cubeTopMapping[(app.qbert.row,app.qbert.col)]
+    #x, y = app.cubeTopMapping[(app.qbert.row,app.qbert.col)]
+
+    ## get starting and ending points for the jump
+    xStart, yStart = app.cubeTopMapping[(app.qbert.rowStart, app.qbert.colStart)]
+    xStop, yStop = app.cubeTopMapping[(app.qbert.rowStop, app.qbert.colStop)]
+    #xIntm, yIntm = (xStop+10, 50+app.qbert.rowStart*app.cubHt)
+    if yStart < yStop:
+        xIntm, yIntm = (xStop, yStart)
+    else:
+        xIntm, yIntm = (xStart, yStop)
+
+    p0 = (xStart, yStart)
+    p1 = (xIntm, yIntm)
+    p2 = (xStop, yStop)
+
+    print("start row, col is: ", ((app.qbert.rowStart, app.qbert.colStart)))
+    print("start x, y is: ", p0 )
+    print("end row, col is: ", ((app.qbert.rowStop, app.qbert.colStop)))
+    print("end x, y is: ", p2 )
+
+    #print(p0, p1, p2)
+
+    print(app.qbert.drawCount)
+    #print(app.qbert.bezierIncrements)
+
     rad = app.width//36
+    t = app.qbert.bezierIncrements[app.qbert.drawCount]
+
+    if app.qbert.moveStart:
+        (x, y) = cubicBezier(t, p0, p1, p2)
+        print("(x, y) = ", (x, y))
+    else:
+        (x, y) = p2
+        
     canvas.create_oval(x-rad, y-rad, x+rad, y+rad, fill = 'orange', 
-                       width = 0)
-    # ## draw test circle at top center of every cube top
-    # for row in range(0, 7):
-    #     for col in range(0,7-row):
-    #         (x,y) = app.cubeTopMapping[(row,col)]
-    #         canvas.create_oval(x-rad, y-rad, x+rad, y+rad, fill = 'orange', 
-    #                    width = 0)
+                        width = 0)
+    
+
                
 def drawEnemy(app, canvas, enemy):
     if enemy=='red':
@@ -341,14 +420,14 @@ def redrawAll(app, canvas):
     drawPyramid(app, canvas)
     drawQbert(app, canvas)
 
-    if app.redEnemy.alive:
-        drawEnemy(app, canvas, 'red')
+    # if app.redEnemy.alive:
+    #     drawEnemy(app, canvas, 'red')
 
-    if app.greenEnemy.alive:
-        drawEnemy(app, canvas, 'green')
+    # if app.greenEnemy.alive:
+    #     drawEnemy(app, canvas, 'green')
     
-    if app.snake.alive:
-        drawEnemy(app, canvas, 'purple')
+    # if app.snake.alive:
+    #     drawEnemy(app, canvas, 'purple')
 
     if app.roundWon:
         drawRoundWon(app, canvas)
