@@ -18,6 +18,11 @@ def initializeGreenEnemy(app):
     randCol = random.randint(0,6-randRow)
     app.greenEnemy = pl.Player(randRow, randCol)
 
+def initializeSnake(app):
+    randRow = random.randint(0,5)
+    randCol = random.randint(0,6-randRow)
+    app.snake = pl.Player(randRow, randCol)
+
 def restartApp(app):
     ## gameplay
     app.score = 0
@@ -31,9 +36,10 @@ def restartApp(app):
     initializeQbert(app)
     initializeRedEnemy(app)
     initializeGreenEnemy(app)
+    initializeSnake(app)
 
 def appStarted(app):
-    app.timerDelay = 1000
+    app.timerDelay = 800
 
     ## cube 
     ## ... coords of top corner of top cube surface 
@@ -43,6 +49,11 @@ def appStarted(app):
     app.cubWd = app.width//12
     app.cubHt = app.height//12
     app.cubeTopMapping = createCubeTopDict(app)
+    ## top colors
+    colorList = ['yellow', 'violet', 'chartreuse2', 'deep pink', 'tomato']
+    app.topColor = {}
+    for i in range(1,len(colorList)+1):
+        app.topColor[i] = colorList[i-1]
     restartApp(app)
     
     
@@ -61,18 +72,25 @@ def createCubeTopDict(app):
     return cubeTopDict 
 
 def updateScore(app):
+## increment score by 25 whenever qbert touches a new cube - including
+## cubes that were turned off by green enemy
     if (app.qbert.row, app.qbert.col) not in app.qbert.path:
         app.score += 25
 
 def manageCollision(app):
-## if qbert hops on red enemy, set alive flag to False, returns None
+## if qbert hops on any enemy, set their alive flag to False, add 10 to score
     if app.qbert.isCollision(app.redEnemy):
         app.redEnemy.alive = False
+        app.score += 10
     elif app.qbert.isCollision(app.greenEnemy):
         app.greenEnemy.alive = False
+        app.score += 10
+    elif app.qbert.isCollision(app.snake):
+        app.snake.alive = False
+        app.score += 10
 
 def keyPressed(app, event):
-## update qberts location, pause/unpause, begin new level, autoplay (nyi)
+## update qberts location, pause/unpause, begin new level, (autoplay tbd))
     previousRow = app.qbert.row
     previousCol = app.qbert.col
 
@@ -124,13 +142,14 @@ def newRound(app):
     initializeQbert(app)
     initializeRedEnemy(app)
     initializeGreenEnemy(app)
+    initializeSnake(app)
     app.round += 1
             
 def timerFired(app):    
     if not app.pauseGame and not app.gameOver:
 
-        ## if score goes negative, game is over
-        if app.score < 0:
+        ## if score goes negative, game is over (temp stop after level 1 finished)
+        if app.score < 0 or app.round > 5:
             app.gameOver = True
 
         ## if qbert touches all cube tops, round is won
@@ -146,66 +165,62 @@ def timerFired(app):
         elif app.greenEnemy.alive == False:
             initializeGreenEnemy(app)
 
+        ## if qbert killed snake, make a new one
+        elif app.snake.alive == False:
+            initializeSnake(app)
+
         ## otherwise game continues    
         else:
             ## move red  & green enemies 
             app.redEnemy.randomMove()
             app.greenEnemy.randomMove()
+            app.qbert.followMove(app.snake)
 
-            ## if red enemy goes onto cube qbert is on
+            ## if enemy goes onto cube qbert is on deduct points
             if (app.qbert.isCollision(app.redEnemy) or
-                app.qbert.isCollision(app.greenEnemy)):
+                app.qbert.isCollision(app.greenEnemy) or
+                app.qbert.isCollision(app.snake)):
                 app.score -=50
 
 def difficultyCondition(app):
 ## return True if a certain difficulty condition is met depending on round num
-## difficulty condition 4: on left or right edge
-## difficulty condition 3: on bottom row
-## difficulty condition 2: on any corner
+## these are the squares the green enemy will UNDO
+## round 1 condition: any corner
+## round 2 condition: bottom row
+## round 3 condition: left or right edge
+## round 4 condition: left or right edge or bottom row
+## round 5 condition: all but top square
+
 ## difficulty condition 1: on center block (2,2)
     if app.round == 1:
-        return((app.greenEnemy.row,app.greenEnemy.col) == (2,2))
-    elif app.round == 2:
         return((app.greenEnemy.row,app.greenEnemy.col) == (0,0) or
                (app.greenEnemy.row,app.greenEnemy.col) == (0,6) or
                (app.greenEnemy.row,app.greenEnemy.col) == (6,0))
-    elif app.round == 3:
+    elif app.round == 2:
         return(app.greenEnemy.row == 0)
-    elif app.round == 4:
+    elif app.round == 3:
         return(app.greenEnemy.onRightEdge() or app.greenEnemy.col==0)
+    elif app.round == 4:
+        return (app.greenEnemy.onRightEdge() or app.greenEnemy.col==0 or
+                app.greenEnemy.row==0)
+    elif app.round == 5:
+        return ((app.greenEnemy.row, app.greenEnemy.col) != (6,0))
 
 def setTopColor(app, row, col):
 ## returns the color of the top of the cube located at row, col
-## colors depends on round and level
-## get rid of if/else by using list and indexing..
-    if app.level == 1:
-        if app.round == 1:
-            ## if greenEnemy on square qbert touched according to difficulty 1
-            if ((row, col) in app.qbert.path and 
-                (row, col) == (app.greenEnemy.row, app.greenEnemy.col) and
-                difficultyCondition(app)):
-                app.qbert.path.remove((row,col))
-                return(app.defaultTopColor)
-            ## else if only qbert has touched, make yello
-            elif (row, col) in app.qbert.path:
-            #if (row, col) in app.qbert.path:
-                return('yellow')
-            else:
-                return(app.defaultTopColor)
-        elif app.round == 2:
-            if (row, col) in app.qbert.path:
-                return('violet')
-            else:
-                return(app.defaultTopColor)
-        elif app.round == 3:
-            if (row, col) in app.qbert.path:
-                return('chartreuse2')
-            else:
-                return(app.defaultTopColor)
+    ## if greenEnemy touched one of qberts squares (according to difficulty)
+    if ((row, col) in app.qbert.path and 
+        (row, col) == (app.greenEnemy.row, app.greenEnemy.col) and
+        difficultyCondition(app)):
+        app.qbert.path.remove((row,col))
+        return(app.defaultTopColor)
+    ## else if only qbert has touched, change color
+    elif (row, col) in app.qbert.path:
+        return(app.topColor[app.round])
+    ## else hasn't been touched by qbert   
+    else:
+        return(app.defaultTopColor)
     
-    print("app.qbert.path AFTER ===== ", app.qbert.path)
-
-
 def drawBackground(app, canvas):
 ## draw backsplash including score, level and round
     dy = app.height//28
@@ -283,11 +298,14 @@ def drawQbert(app, canvas):
                
 def drawEnemy(app, canvas, enemy):
     if enemy=='red':
-        x, y = app.cubeTopMapping[(app.redEnemy.row,app.redEnemy.col)]
+        x, y = app.cubeTopMapping[(app.redEnemy.row, app.redEnemy.col)]
         rad = app.width//52
     elif enemy=='green':
-        x, y = app.cubeTopMapping[(app.greenEnemy.row,app.greenEnemy.col)]
+        x, y = app.cubeTopMapping[(app.greenEnemy.row, app.greenEnemy.col)]
         rad = app.width//48
+    elif enemy=='purple':
+        rad = app.width//40
+        x, y = app.cubeTopMapping[(app.snake.row, app.snake.col)]
     
     canvas.create_oval(x-rad, y-rad, x+rad, y+rad, fill = enemy, width = 0)
 
@@ -328,6 +346,9 @@ def redrawAll(app, canvas):
 
     if app.greenEnemy.alive:
         drawEnemy(app, canvas, 'green')
+    
+    if app.snake.alive:
+        drawEnemy(app, canvas, 'purple')
 
     if app.roundWon:
         drawRoundWon(app, canvas)
@@ -335,5 +356,6 @@ def redrawAll(app, canvas):
         drawGameOver(app, canvas)
     elif not app.redEnemy.alive: 
         drawKillMessage(app, canvas)
+
 runApp(width=775, height=775)
 
