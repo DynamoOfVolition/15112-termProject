@@ -1,12 +1,16 @@
 import random
+from cmu_112_graphics import *
 
 class Player(object):
-    def __init__(self, rowStart, colStart, rowStop, colStop, cx, cy):
+    def __init__(self, name, rowStart, colStart, rowStop, colStop):
+        self.name = name
         self.rowStart = rowStart
         self.colStart = colStart
         self.rowStop = rowStop
         self.colStop = colStop
         self.path = []
+        self.rad = 0
+        self.color = ''
         self.alive = True
         self.drawCount = 1
         self.moveStart = False
@@ -15,18 +19,18 @@ class Player(object):
         for i in l:   
             self.bezierIncrements[int(i*10+1)] = l[int(i*10)]
 
+    def __repr__(self):
+        return f'{self.name}'
+
     def randomMove(self):
     ## piece makes a single random move depending on it's current location
         ## on top cube
         if self.rowStart== 6: 
             rowIncrement = random.choice([-1,0])
-            #self.rowStart+= rowIncrement
             self.rowStop = self.rowStart + rowIncrement
             if rowIncrement == 0:
-                #self.colStart+= 0
                 self.colStop = self.colStart
             else:
-                #self.colStart+= 1
                 self.colStop = self.colStart + 1
         ## not on top cube 
         else: 
@@ -34,74 +38,61 @@ class Player(object):
             if self.colStart== 0: 
                 ## left-bottom corner special case
                 if self.rowStart== 0:
-                    # self.rowStart+= 1
-                    # self.colStart+= 0
                     self.rowStop = self.rowStart + 1
                     self.colStop = self.colStart
                 else:
                     rowIncrement = random.choice([-1,1])
-                    #self.rowStart+= rowIncrement
                     self.rowStop = self.rowStart + rowIncrement
                     if rowIncrement == 1:
-                        #self.colStart+= 0
                         self.colStop = self.colStart
                     else:
-                        #self.colStart+= random.choice([0,1])
                         self.colStop = self.colStart + random.choice([0,1])
             ## on right edge 
             elif self.onRightEdge(): 
                 ## right-bottom corner special case 
                 if self.rowStart== 0:
-                    #self.rowStart+= 1
-                    #self.colStart-= 1
                     self.rowStop = self.rowStart + 1
                     self.colStop = self.colStart - 1
                 else:
                     rowIncrement = random.choice([-1,1])
-                    #self.rowStart+= rowIncrement
                     self.rowStop = self.rowStart + rowIncrement
                     if rowIncrement == 1:
-                        #self.colStart-= 1
                         self.colStop = self.colStart - 1
                     else:
-                        #self.colStart+= random.choice([0,1])
                         self.colStop = self.colStart + random.choice([0,1])
 
             ## not on left or right edge
             elif not self.onRightEdge() and self.colStart!= 0: 
                 ## bottom row except corners
                 if self.rowStart== 0:
-                    # self.rowStart+= 1
-                    #self.colStart+= random.choice([-1,0])
                     self.rowStop = self.rowStart + 1
                     self.colStop = self.colStart + random.choice([-1,0])
 
                 ## middle of pyramid
                 else:
                     rowIncrement = random.choice([-1,1])
-                    #self.rowStart+= rowIncrement
                     self.rowStop = self.rowStart + rowIncrement
 
                     if rowIncrement == 1:
-                        #self.colStart+= random.choice([-1,0])
                         self.colStop = self.colStart + random.choice([-1,0])
                     else:
-                        #self.colStart+= random.choice([0,1])
                         self.colStop = self.colStart + random.choice([0,1])
         self.moveStart = False
 
     def followMove(self, other):
     ## updates others row and col with legal move that gets it closer to self
-        #print("snake is located at== ", (other.row, other.col))
-        #print("qbert is located at==", (self.row, self.col))
+        # print("snake is located at== ", (other.rowStart, other.colStart))
+        # print("qbert is located at==", (self.rowStart, self.colStart))
+
         other.moveStart = True
+
         ## self is above
         if self.rowStart > other.rowStart:
             #other.row += 1
             other.rowStop = other.rowStart + 1
 
             ## self is to the left
-            if self.colStart< other.colStart:
+            if self.colStart < other.colStart:
                 #other.col -= 1
                 other.colStop = other.colStart - 1
             ## self is to the right
@@ -110,7 +101,7 @@ class Player(object):
                 other.colStop = other.colStart
 
         ## self is below
-        elif self.rowStart< other.rowStart:
+        elif self.rowStart < other.rowStart:
             #other.row -= 1
             other.rowStop = other.rowStart - 1
 
@@ -148,8 +139,15 @@ class Player(object):
                     other.colStop = other.colStart - 1
                 elif self.colStart== other.colStart and self.colStart== 0:
                     #other.col += 0 
-                    other.colStop = other.colStart           
-            ## self and other not on bottom row
+                    other.colStop = other.colStart   
+
+            ## self and other on top cube
+            elif other.rowStart == self.rowStart == 6:
+                other.rowStop = other.rowStart - 1
+                colIncrement = random.choice([0,1])
+                other.colStop = other.colStart + colIncrement
+
+            ## self and other not on bottom or top cube
             else:
                 rowIncrement = random.choice([-1,1])
                 #other.row += rowIncrement
@@ -186,3 +184,50 @@ class Player(object):
     def isCollision(self, other):
         return ((self.rowStop, self.colStop) == (other.rowStop, other.colStop))
 
+    def bounceIteration(self):
+        if (self.drawCount == 1):  
+                self.drawCount += 1   
+                self.randomMove()      
+        elif self.drawCount > 1 and self.drawCount < 11:
+            self.drawCount += 1
+        else:
+            self.drawCount = 1
+            self.rowStart = self.rowStop
+            self.colStart = self.colStop
+
+    @staticmethod
+    def cubicBezier(t, p0, p1, p2):
+    ## Bezier curve function and code adapted from 
+    ## https://towardsdatascience.com/bézier-curve-bfffdadea212
+
+    ## returns a point along a cubic bezier curve 
+        px = (1-t)**2*p0[0] + 2*t*(1-t)*p1[0] + t**2*p2[0]
+        py = (1-t)**2*p0[1] + 2*t*(1-t)*p1[1] + t**2*p2[1]
+        return (px, py)
+
+    def drawPlayer(self, app, canvas):
+
+        r = self.rad
+        xStart, yStart = app.cubeTopMapping[(self.rowStart, 
+                                             self.colStart)]
+        xStop, yStop = app.cubeTopMapping[(self.rowStop, 
+                                           self.colStop)]
+
+        ## control point depends on if traveling up or down a row
+        if yStart < yStop:
+            xIntm, yIntm = (xStop, yStart)
+        else:
+            xIntm, yIntm = (xStart, yStop)
+
+        p0 = (xStart, yStart)
+        p1 = (xIntm, yIntm)
+        p2 = (xStop, yStop)
+        t = self.bezierIncrements[self.drawCount]
+
+        if ((self.name == 'qbert' and self.moveStart) or 
+            self.name == 'redEnemy' or self.name == 'greenEnemy'):
+            (x, y) = Player.cubicBezier(t, p0, p1, p2)
+        else:
+            (x, y) = p2 
+
+        canvas.create_oval(x-r, y-r, x+r, y+r, fill = self.color, width = 0)
