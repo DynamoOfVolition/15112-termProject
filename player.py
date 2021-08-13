@@ -13,6 +13,52 @@ class Player(object):
         py = (1-t)**2*p0[1] + 2*t*(1-t)*p1[1] + t**2*p2[1]
         return (px, py)
 
+    @staticmethod
+    def findMaxDir(directionCnt):
+        maxDir = ''
+        maxLen = 0
+        currLen = 0
+
+        for key in directionCnt:
+            currLen = directionCnt[key]
+            if currLen > maxLen:
+                maxLen = currLen
+                maxDir = key
+        return maxDir  
+
+    @staticmethod
+    def generateCubeList(row, col, direction):
+    ## takes location of player and a direction (UR, UL, LR, LL) and 
+    ## returns set of (row, col) along that direction
+    ## not dependent on enemies or qberts path, only returns information about 
+    ## the board itself
+        l = []
+        if direction == 'LL':
+            if row != 0:
+                for i in range(0, row):
+                    l.append((i, col))
+            else:
+                return None
+        elif direction == 'UR':
+            if row != 6:
+                for i in range(row+1, 7-col):
+                    l.append((i, col))
+            else:
+                return None
+        elif direction == 'LR':
+            if row != 0:
+                for i in range(row-1, -1, -1):
+                        l.append((i, row+col-i))
+            else:
+                return None
+        elif direction == 'UL':
+            if row != 6:
+                for i in range(row+1, row+ col+1):
+                    l.append((i,row+col-i))
+            else:
+                return None
+        return l
+    
     def __init__(self, name, rowStart, colStart, rowStop, colStop):
         self.name = name
         self.rowStart = rowStart
@@ -92,7 +138,7 @@ class Player(object):
 
     def followMove(self, other):
     ## self follows other
-    ## usage would be: app.snake.followMove(app.qbert)
+    ## usage would be: app.snake.followMove(self)
     ## updates others row and col with legal move that gets it closer to self
         # print("snake is located at== ", (self.rowStart, self.colStart))
         # print("qbert is located at==", (other.rowStart, other.colStart))
@@ -195,8 +241,6 @@ class Player(object):
                         else:
                             self.colStop = self.colStart + random.choice([-1,0])
 
-
-
     def onRightEdge(self):
         onRightEdge = ((self.rowStart== 6 and self.colStart== 0) or
                        (self.rowStart== 5 and self.colStart== 1) or
@@ -211,14 +255,18 @@ class Player(object):
         return ((self.rowStop, self.colStop) == (other.rowStop, other.colStop))
 
     def bounceIteration(self, other):
+    ## performs one iteration along the path from start to stop location
     ## other is only necessary for call to followMove
     ## self is enemy, other is qbert
         if (self.drawCount == 1):  
                 self.drawCount += 1   
-                if self.name != 'snake':
+                if self.name == 'redEnemy' or self.name == 'greenEnemy':
                     self.randomMove() 
-                else:
+                elif self.name == 'snake':
                     self.followMove(other)
+                else:
+                    self.autoplay()
+
         elif self.drawCount > 1 and self.drawCount < 11:
             self.drawCount += 1
         else:
@@ -226,8 +274,142 @@ class Player(object):
             self.rowStart = self.rowStop
             self.colStart = self.colStop
 
-    def drawPlayer(self, app, canvas):
+    
+    
+    def autoplay(self):
+    ## update qberts location (rowStop, colStop) based on path and enemy location
+    ## in general, want to move along path with most untouched squares and most
+    ## enemies (bc killing them gives points) with each step. but this fxn currently
+    ## ignores enemies bc no time to implement that feature
+        nLR = nLL = 0    
+        dirCnt = {}  #dirCnt[direction] = count
+        row = self.rowStart
+        col = self.colStart
+        qbertPath = set(self.path)
+    
+        ## 1 find set of all untouched cubes
+        #openCubes = app.allCubes.difference(set(self.path))
 
+        ## 2. find direction with most untouched cubes 
+        ## look in each direction and count number of untouched squares
+
+        ## qbert on left side:
+        if self.colStart == 0:
+            ## left bottom corner cube - DONE
+            if self.rowStart == 0:
+                self.rowStop = 1
+                self.colStop = 0
+            ## top cube - DONE
+            elif self.rowStart == 6:
+                self.rowStop = 5
+                cubesLL = Player.generateCubeList(6,0,'LL')
+                cubesLR = Player.generateCubeList(6,0,'LR')
+                nLL = len(cubesLL) - len(qbertPath.intersection(set(cubesLL)))
+                nLR = len(cubesLR) - len(qbertPath.intersection(set(cubesLR)))
+                if nLL > nLR:
+                    self.colStop = 0
+                elif nLL < nLR:
+                    self.colStop = 1
+                else:
+                    self.colStop = col + random.choice([0,1])
+            ## on left side, not top or bottom cube - DONE
+            else:
+                cubesLL = Player.generateCubeList(row, col, 'LL')
+                cubesUR = Player.generateCubeList(row, col, 'UR')
+                cubesLR = Player.generateCubeList(row, col, 'LR')
+                dirCnt['LL'] = len(cubesLL) - \
+                            len(qbertPath.intersection(set(cubesLL)))
+                dirCnt['UR'] = len(cubesUR) - \
+                            len(qbertPath.intersection(set(cubesUR)))
+                dirCnt['LR'] = len(cubesLR) - \
+                            len(qbertPath.intersection(set(cubesLR)))
+                maxDir = Player.findMaxDir(dirCnt)
+                if maxDir == 'LL':
+                    self.rowStop = self.rowStart - 1
+                    self.colStop = self.colStart
+                elif maxDir == 'UR':
+                    self.rowStop = self.rowStart + 1
+                    self.colStop = self.colStart
+                elif maxDir == 'LR':
+                    self.rowStop = self.rowStart - 1
+                    self.colStop = self.colStart + 1
+        ## qbert on right side
+        elif self.onRightEdge():
+            ## right bottom corner cube - DONE
+            if self.rowStart == 0:
+                self.rowStop = 1
+                self.colStop = self.colStart - 1
+            ## on right side, not top or bottom cube
+            else:
+                cubesLL = Player.generateCubeList(row, col, 'LL')
+                cubesUL = Player.generateCubeList(row, col, 'UL')
+                cubesLR = Player.generateCubeList(row, col, 'LR')
+                dirCnt['LL'] = len(cubesLL) - \
+                            len(qbertPath.intersection(set(cubesLL)))
+                dirCnt['UL'] = len(cubesUL) - \
+                            len(qbertPath.intersection(set(cubesUL)))
+                dirCnt['LR'] = len(cubesLR) - \
+                            len(qbertPath.intersection(set(cubesLR)))
+                maxDir =Player.findMaxDir(dirCnt)
+                if maxDir == 'LL':
+                    self.rowStop = self.rowStart - 1
+                    self.colStop = self.colStart
+                elif maxDir == 'UL':
+                    self.rowStop = self.rowStart + 1
+                    self.colStop = self.colStart - 1
+                elif maxDir == 'LR':
+                    self.rowStop = self.rowStart - 1
+                    self.colStop = self.colStart + 1
+        ## bottom row
+        elif self.rowStart == 0:
+            cubesUL = Player.generateCubeList(row, col, 'UL')
+            cubesUR = Player.generateCubeList(row, col, 'UR')
+            dirCnt['UL'] = len(cubesUL) - \
+                        len(qbertPath.intersection(set(cubesUL)))
+            dirCnt['UR'] = len(cubesUR) - \
+                        len(qbertPath.intersection(set(cubesUR)))
+            maxDir =Player.findMaxDir(dirCnt)
+            if maxDir == 'UL':
+                    self.rowStop = self.rowStart + 1
+                    self.colStop = self.colStart - 1
+            elif maxDir == 'UR':
+                    self.rowStop = self.rowStart + 1
+                    self.colStop = self.colStart 
+        ## interior
+        else:
+            cubesLL = Player.generateCubeList(row, col, 'LL')
+            cubesUL = Player.generateCubeList(row, col, 'UL')
+            cubesLR = Player.generateCubeList(row, col, 'LR')
+            cubesUR = Player.generateCubeList(row, col, 'UR')
+            dirCnt['LL'] = len(cubesLL) - \
+                        len(qbertPath.intersection(set(cubesLL)))
+            dirCnt['UL'] = len(cubesUL) - \
+                        len(qbertPath.intersection(set(cubesUL)))
+            dirCnt['LR'] = len(cubesLR) - \
+                        len(qbertPath.intersection(set(cubesLR)))
+            dirCnt['UR'] = len(cubesUR) - \
+                        len(qbertPath.intersection(set(cubesUR)))
+            maxDir =Player.findMaxDir(dirCnt)
+            if maxDir == 'LL':
+                self.rowStop = self.rowStart - 1
+                self.colStop = self.colStart
+            elif maxDir == 'UL':
+                self.rowStop = self.rowStart + 1
+                self.colStop = self.colStart - 1
+            elif maxDir == 'LR':
+                self.rowStop = self.rowStart - 1
+                self.colStop = self.colStart + 1
+            elif maxDir == 'UR':
+                self.rowStop = self.rowStart + 1
+                self.colStop = self.colStart 
+
+    ## 4. if nothing along any direction, identify closest open square and go to it
+
+
+    
+    
+    
+    def drawPlayer(self, app, canvas):
         r = self.rad
         xStart, yStart = app.cubeTopMapping[(self.rowStart, 
                                              self.colStart)]

@@ -105,6 +105,12 @@ def restartApp(app):
     initializeGreenEnemy(app)
     initializeSnake(app)
 
+def setOfAllCubes(app):
+    app.allCubes = set()
+    for row in range(0,7):
+        for col in range(0,7-row):
+            app.allCubes.add((row,col))
+
 def appStarted(app):
     
     app.timerDelay = 50
@@ -118,6 +124,7 @@ def appStarted(app):
     app.cubWd = app.width//12
     app.cubHt = app.height//12
     app.cubeTopMapping = createCubeTopDict(app)
+    app.allCubes = setOfAllCubes(app)
     ## top colors
     colorList = ['yellow', 'violet', 'chartreuse2', 'deep pink', 'tomato']
     app.topColor = {}
@@ -291,20 +298,6 @@ def manageCollision(app):
         app.snake.alive = False
         app.score += 10
 
-def qbertAutoplay(app):
-## update qberts location (rowStop, colStop) based on path and enemy locations
-    print("in autoplay!!")
-    ## 1 determine which squares surrounding qbert have not been touched --> list of row,col
-    ## app.qbert.path
-    
-    
-    ## 2 
-        ## along each path, count how many enemies there are
-    ## 
-
-    ## check if there are enemies along any path
-
-
 ##########################################
 # Game Mode
 ##########################################
@@ -388,11 +381,14 @@ def gameMode_timerFired(app):
 
         ## otherwise game continues    
         else:
-
             ## if game on autplay, qbert makes an AI move
             if app.autoPlay:
-                qbertAutoplay(app) ## updates rowStop, colStop based on path and enemy locations
-
+                app.qbert.bounceIteration(app.snake) # other parameter 
+                app.qbert.autoplay() ## updates rowStop, colStop 
+                if ((app.qbert.rowStop, app.qbert.colStop) != 
+                        (app.qbert.rowStart, app.qbert.colStart) and
+                        (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path):
+                            app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop)) 
             ## not on autoplay, move comes from keyPressed
             else:
                 ## increment qberts path along bezier curve
