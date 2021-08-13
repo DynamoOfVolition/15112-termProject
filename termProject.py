@@ -2,6 +2,65 @@ from cmu_112_graphics import *
 import random
 import player as pl
 
+##########################################
+# Splash Screen Mode
+##########################################
+def splashScreenMode_redrawAll(app, canvas):
+    fontBig = 'Arial 36 bold'
+    fontMedItalic = 'Arial 22 bold italic'
+    space = 180
+    dy = app.height//22
+    canvas.create_rectangle(0, 0, app.width, app.height, fill = 'black')
+    canvas.create_text(app.width/2, 100, text='Welcome to Qbert!', 
+                       font=fontBig, fill='dark orange')
+    #canvas.create_text(app.width/2, space + dy, text="Gameplay:", font=)
+    canvas.create_text(app.width/2, space, 
+    text="Hop on each cube to change its color, while avoiding the enemies!", 
+    font=fontMedItalic, fill='purple')
+    canvas.create_text(app.width/2, space + dy, 
+    text="Coily the snake will follow you, so beware. The other enemies move", 
+    font=fontMedItalic, fill='purple')
+    canvas.create_text(app.width/2, space + 2*dy, 
+    text="at random. Rounds increase in difficulty with the green enemy ", 
+    font=fontMedItalic, fill='purple')
+    canvas.create_text(app.width/2, space + 3*dy, 
+    text="undoing certain blocks, more and more each round. ", 
+    font=fontMedItalic, fill='purple')
+    canvas.create_text(app.width/2, space + 5*dy, 
+    text="Score +50 points with each cube touched,", 
+    font=fontMedItalic, fill='white')
+    canvas.create_text(app.width/2, space + 6*dy, 
+    text="+10 points for each enemy killed,", 
+    font=fontMedItalic, fill='white')
+    canvas.create_text(app.width/2, space + 7*dy, 
+    text="-10 points for each enemy that hops on you", 
+    font=fontMedItalic, fill='white')
+    canvas.create_text(app.width/2, space + 9*dy, 
+    text="Press 'a' twice for autoplay, 'space' for manual play", 
+    font=fontMedItalic, fill='DeepPink2')
+    canvas.create_text(app.width/2, space + 11*dy, 
+    text="Manually move Q*bert by pressing the keys:", 
+    font=fontMedItalic, fill='dark orange')
+    
+    canvas.create_text(app.width/2, space + 12*dy, 
+    text="'u' to go up-left'", 
+    font=fontMedItalic, fill='dark orange')
+    canvas.create_text(app.width/2, space + 13*dy, 
+    text="'i' to go up-right'", 
+    font=fontMedItalic, fill='dark orange')
+    canvas.create_text(app.width/2, space + 14*dy, 
+    text="'h' to go down-left'", 
+    font=fontMedItalic, fill='dark orange')
+    canvas.create_text(app.width/2, space + 15*dy, 
+    text="'j' to go down-right'", 
+    font=fontMedItalic, fill='dark orange')
+
+def splashScreenMode_keyPressed(app, event):
+    app.mode = 'gameMode'
+
+##########################################
+# Main App
+##########################################
 def initializeQbert(app):
 ## make a new qbert, called whenever a round or level is completed
     app.qbert = pl.Player('qbert', 6, 0, 6, 0)
@@ -38,6 +97,7 @@ def restartApp(app):
     app.roundWon = False
     app.pauseGame = False
     app.gameOver = False
+    app.autoPlay = False
 
     ## create qbert and creatures
     initializeQbert(app)
@@ -46,7 +106,10 @@ def restartApp(app):
     initializeSnake(app)
 
 def appStarted(app):
+    
     app.timerDelay = 50
+    app.mode = 'splashScreenMode'
+    
     ## cube 
     ## ... coords of top corner of top cube surface 
     # cx = app.width//2
@@ -79,70 +142,7 @@ def updateScore(app):
 ## increment score by 25 whenever qbert touches a new cube - including
 ## cubes that were turned off by green enemy
     if (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path:
-        app.score += 25
-
-def manageCollision(app):
-## if qbert hops on any enemy, set their alive flag to False, add 10 to score
-    if app.qbert.isCollision(app.redEnemy):
-        app.redEnemy.alive = False
-        app.score += 10
-    elif app.qbert.isCollision(app.greenEnemy):
-        app.greenEnemy.alive = False
-        app.score += 10
-    elif app.qbert.isCollision(app.snake):
-        app.snake.alive = False
-        app.score += 10
-
-def keyPressed(app, event):
-## update qberts location, pause/unpause, begin new level, (autoplay tbd))
-    app.qbert.rowStart = app.qbert.rowStop
-    app.qbert.colStart = app.qbert.colStop
-
-    ## check if game is to be paused or unpaused
-    if event.key == 'p':
-        app.pauseGame = not app.pauseGame
-
-    ## if game is not paused or over, continue
-    if not app.pauseGame and not app.gameOver:
-
-        ## enter used to initialize new round only here
-        if event.key == 'Enter':
-            app.roundWon = False
-
-        ## check for movement keys
-        if event.key == 'i': # up-right
-            if not app.qbert.onRightEdge():
-                app.qbert.moveStart = True
-                app.qbert.rowStop = app.qbert.rowStart + 1
-                app.qbert.colStop = app.qbert.colStart
-                updateScore(app)
-                manageCollision(app)
-        elif event.key == 'u': # up-left
-            if app.qbert.colStart != 0 and app.qbert.rowStart != 6:
-                app.qbert.moveStart = True
-                app.qbert.rowStop = app.qbert.rowStart + 1
-                app.qbert.colStop = app.qbert.colStart - 1
-                updateScore(app)
-                manageCollision(app)
-        elif event.key == 'j': # down-left
-            if app.qbert.rowStart > 0:
-                app.qbert.moveStart = True
-                app.qbert.rowStop = app.qbert.rowStart - 1
-                app.qbert.colStop = app.qbert.colStart + 1
-                updateScore(app)
-                manageCollision(app)
-        elif event.key == 'h': # down-right
-            if app.qbert.rowStart > 0:
-                app.qbert.moveStart = True
-                app.qbert.rowStop = app.qbert.rowStart - 1
-                app.qbert.colStop = app.qbert.colStart 
-                updateScore(app)
-                manageCollision(app)
-
-    ## if game is over, restart
-    elif app.gameOver:
-        if event.key == 'Enter':
-            restartApp(app)
+        app.score += 50
 
 def newRound(app):
     initializeQbert(app)
@@ -150,58 +150,6 @@ def newRound(app):
     initializeGreenEnemy(app)
     initializeSnake(app)
     app.round += 1
-            
-def timerFired(app):    
-    if not app.pauseGame and not app.gameOver:
-        ## if score goes negative, game is over (temp stop after level 1 finished)
-        if app.score < 0 or app.round > 5:
-            app.gameOver = True
-
-        ## if qbert touches all cube tops, round is won
-        elif len(app.qbert.path) == 28:
-            app.roundWon = True
-            newRound(app)
-
-        ## if qbert killed red enemy, make a new one
-        elif app.redEnemy.alive == False:
-            initializeRedEnemy(app)
-
-        ## if qbert killed green enemy, make a new one
-        elif app.greenEnemy.alive == False:
-            initializeGreenEnemy(app)
-
-        ## if qbert killed snake, make a new one
-        elif app.snake.alive == False:
-            initializeSnake(app)
-
-        ## otherwise game continues    
-        else:
-            ## increment qberts path along bezier curve
-            limit = len(app.qbert.bezierIncrements)
-            if app.qbert.moveStart:
-                if app.qbert.drawCount < limit:
-                    app.qbert.drawCount += 1
-                elif app.qbert.drawCount == limit:
-                    app.qbert.moveStart = False
-                    app.qbert.drawCount = 1
-            ## at end of jump, append row,col to qberts path
-            else:
-                if ((app.qbert.rowStop, app.qbert.colStop) != 
-                    (app.qbert.rowStart, app.qbert.colStart) and
-                    (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path):
-                        app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop))       
-            #print(app.qbert.path)
-
-            ## increment enemies path along bezier curve
-            app.redEnemy.bounceIteration()
-            app.greenEnemy.bounceIteration()
-            app.snake.bounceIteration()
-
-            ## if enemy goes onto cube qbert is on deduct points
-            if (app.qbert.isCollision(app.redEnemy) or
-                app.qbert.isCollision(app.greenEnemy) or
-                app.qbert.isCollision(app.snake)):
-                app.score -=5
 
 def difficultyCondition(app):
 ## return True if a certain difficulty condition is met depending on round num
@@ -242,7 +190,7 @@ def setTopColor(app, row, col):
     else:
         color = app.defaultTopColor
     return color
-    
+
 def drawBackground(app, canvas):
 ## draw backsplash including score, level and round
     dy = app.height//28
@@ -331,7 +279,151 @@ def drawKillMessage(app, canvas):
                        font = 'Helvetica 16 bold')
                        #angle = 45)
 
-def redrawAll(app, canvas):
+def manageCollision(app):
+## if qbert hops on any enemy, set their alive flag to False, add 10 to score
+    if app.qbert.isCollision(app.redEnemy):
+        app.redEnemy.alive = False
+        app.score += 10
+    elif app.qbert.isCollision(app.greenEnemy):
+        app.greenEnemy.alive = False
+        app.score += 10
+    elif app.qbert.isCollision(app.snake):
+        app.snake.alive = False
+        app.score += 10
+
+def qbertAutoplay(app):
+## update qberts location (rowStop, colStop) based on path and enemy locations
+    print("in autoplay!!")
+    ## 1 determine which squares surrounding qbert have not been touched --> list of row,col
+    ## app.qbert.path
+    
+    
+    ## 2 
+        ## along each path, count how many enemies there are
+    ## 
+
+    ## check if there are enemies along any path
+
+
+##########################################
+# Game Mode
+##########################################
+def gameMode_keyPressed(app, event):
+## update qberts location, pause/unpause, begin new level, (autoplay tbd))
+    app.qbert.rowStart = app.qbert.rowStop
+    app.qbert.colStart = app.qbert.colStop
+
+    ## if game is paused/unpaused
+    if event.key == 'p':
+        app.pauseGame = not app.pauseGame
+
+    ## if autoplay is selected/unselected
+    if event.key == 'a':
+        app.autoPlay = not app.autoPlay
+
+    ## if game is not paused, continue
+    if not app.pauseGame and not app.gameOver:
+
+        ## enter used to initialize new round only here
+        if event.key == 'Enter':
+            app.roundWon = False
+
+        ## check for movement keys
+        if event.key == 'i': # up-right
+            if not app.qbert.onRightEdge():
+                app.qbert.moveStart = True
+                app.qbert.rowStop = app.qbert.rowStart + 1
+                app.qbert.colStop = app.qbert.colStart
+                updateScore(app)
+                manageCollision(app)
+        elif event.key == 'u': # up-left
+            if app.qbert.colStart != 0 and app.qbert.rowStart != 6:
+                app.qbert.moveStart = True
+                app.qbert.rowStop = app.qbert.rowStart + 1
+                app.qbert.colStop = app.qbert.colStart - 1
+                updateScore(app)
+                manageCollision(app)
+        elif event.key == 'j': # down-left
+            if app.qbert.rowStart > 0:
+                app.qbert.moveStart = True
+                app.qbert.rowStop = app.qbert.rowStart - 1
+                app.qbert.colStop = app.qbert.colStart + 1
+                updateScore(app)
+                manageCollision(app)
+        elif event.key == 'h': # down-right
+            if app.qbert.rowStart > 0:
+                app.qbert.moveStart = True
+                app.qbert.rowStop = app.qbert.rowStart - 1
+                app.qbert.colStop = app.qbert.colStart 
+                updateScore(app)
+                manageCollision(app)
+
+    ## if game is over, restart
+    elif app.gameOver:
+        if event.key == 'Enter':
+            restartApp(app)
+            
+def gameMode_timerFired(app):    
+    if not app.pauseGame and not app.gameOver:
+        ## if score goes negative, game is over (temp stop after level 1 finished)
+        if app.score < 0 or app.round > 5:
+            app.gameOver = True
+
+        ## if qbert touches all cube tops, round is won
+        elif len(app.qbert.path) == 28:
+            app.roundWon = True
+            newRound(app)
+
+        ## if qbert killed red enemy, make a new one
+        elif app.redEnemy.alive == False:
+            initializeRedEnemy(app)
+
+        ## if qbert killed green enemy, make a new one
+        elif app.greenEnemy.alive == False:
+            initializeGreenEnemy(app)
+
+        ## if qbert killed snake, make a new one
+        elif app.snake.alive == False:
+            initializeSnake(app)
+
+        ## otherwise game continues    
+        else:
+
+            ## if game on autplay, qbert makes an AI move
+            if app.autoPlay:
+                qbertAutoplay(app) ## updates rowStop, colStop based on path and enemy locations
+
+            ## not on autoplay, move comes from keyPressed
+            else:
+                ## increment qberts path along bezier curve
+                limit = len(app.qbert.bezierIncrements)
+                if app.qbert.moveStart:
+                    if app.qbert.drawCount < limit:
+                        app.qbert.drawCount += 1
+                    elif app.qbert.drawCount == limit:
+                        app.qbert.moveStart = False
+                        app.qbert.drawCount = 1
+                ## at end of jump, append row,col to qberts path
+                else:
+                    if ((app.qbert.rowStop, app.qbert.colStop) != 
+                        (app.qbert.rowStart, app.qbert.colStart) and
+                        (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path):
+                            app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop))       
+            #print(app.qbert.path)
+
+            ## increment enemies path along bezier curve
+            app.redEnemy.bounceIteration(app.qbert)
+            app.greenEnemy.bounceIteration(app.qbert)
+            app.snake.bounceIteration(app.qbert)
+
+            ## if enemy goes onto cube qbert is on deduct points
+            if (app.qbert.isCollision(app.redEnemy) or
+                app.qbert.isCollision(app.greenEnemy) or
+                app.qbert.isCollision(app.snake)):
+                app.score -=10
+
+
+def gameMode_redrawAll(app, canvas):
     drawBackground(app, canvas)
     drawPyramid(app, canvas)
     app.qbert.drawPlayer(app, canvas)

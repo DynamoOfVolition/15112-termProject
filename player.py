@@ -2,6 +2,17 @@ import random
 from cmu_112_graphics import *
 
 class Player(object):
+    
+    @staticmethod
+    def cubicBezier(t, p0, p1, p2):
+    ## Bezier curve function and code adapted from 
+    ## https://towardsdatascience.com/bézier-curve-bfffdadea212
+
+    ## returns a point along a cubic bezier curve 
+        px = (1-t)**2*p0[0] + 2*t*(1-t)*p1[0] + t**2*p2[0]
+        py = (1-t)**2*p0[1] + 2*t*(1-t)*p1[1] + t**2*p2[1]
+        return (px, py)
+
     def __init__(self, name, rowStart, colStart, rowStop, colStop):
         self.name = name
         self.rowStart = rowStart
@@ -80,95 +91,110 @@ class Player(object):
         self.moveStart = False
 
     def followMove(self, other):
+    ## self follows other
+    ## usage would be: app.snake.followMove(app.qbert)
     ## updates others row and col with legal move that gets it closer to self
-        # print("snake is located at== ", (other.rowStart, other.colStart))
-        # print("qbert is located at==", (self.rowStart, self.colStart))
+        # print("snake is located at== ", (self.rowStart, self.colStart))
+        # print("qbert is located at==", (other.rowStart, other.colStart))
 
-        other.moveStart = True
+        self.moveStart = True
 
-        ## self is above
-        if self.rowStart > other.rowStart:
-            #other.row += 1
-            other.rowStop = other.rowStart + 1
+        ## other is above
+        if other.rowStart > self.rowStart:
+            #self.row += 1
+            self.rowStop = self.rowStart + 1
 
-            ## self is to the left
-            if self.colStart < other.colStart:
-                #other.col -= 1
-                other.colStop = other.colStart - 1
-            ## self is to the right
+            ## other is to the left
+            if other.colStart < self.colStart:
+                self.colStop = self.colStart - 1
+            ## other is to the right
             else:
-                #other.col += 0
-                other.colStop = other.colStart
+                self.colStop = self.colStart
 
-        ## self is below
-        elif self.rowStart < other.rowStart:
-            #other.row -= 1
-            other.rowStop = other.rowStart - 1
+        ## other is below
+        elif other.rowStart < self.rowStart:
+            self.rowStop = self.rowStart - 1
 
-            ## self is to the left
-            if self.colStart< other.colStart:
-                #other.col += 0
-                other.colStop = other.colStart
+            ## other is to the left
+            if other.colStart< self.colStart:
+                self.colStop = self.colStart
                 
-            ## self is to the right
+            ## other is to the right
             else:
-                #other.col += random.choice([0,1])
-                other.colStop = other.colStart + random.choice([0,1])
+                self.colStop = self.colStart + 1
 
         ## self and other on same row
         else:
             ## self and other on bottom row
-            if self.rowStart== 0:
-                #other.row += 1
-                other.rowStop = other.rowStart + 1
-                ## self is to the left
-                if self.colStart< other.colStart:
-                    #other.col -= 1
-                    other.colStop = other.colStart - 1
-                ## self is to the right
-                elif self.colStart> other.colStart:
-                    #other.col += 0
-                    other.colStop = other.colStart
+            if other.rowStart== 0:
+                self.rowStop = self.rowStart + 1
+
+                ## other is to the left
+                if other.colStart < self.colStart:
+                    self.colStop = self.colStart - 1
+
+                ## other is to the right
+                elif other.colStart > self.colStart: # OK
+                    self.colStop = self.colStart
+
                 ## same cube but not on corners
-                elif (self.colStart== other.colStart and 
-                     self.colStart!= 6 and self.colStart!= 0):
-                    other.colStop = other.colStart + random.choice([0,1])
+                elif (other.colStart == self.colStart and 
+                     other.colStart!= 6 and other.colStart!= 0):
+                    self.colStop = self.colStart + random.choice([-1,0]) # OK
+
                 ## same cube but on corner
-                elif self.colStart== other.colStart and self.colStart== 6:
-                    #other.col -= 1
-                    other.colStop = other.colStart - 1
-                elif self.colStart== other.colStart and self.colStart== 0:
-                    #other.col += 0 
-                    other.colStop = other.colStart   
+                elif other.colStart== self.colStart and other.colStart== 6: # OK
+                    self.colStop = self.colStart - 1
 
-            ## self and other on top cube
-            elif other.rowStart == self.rowStart == 6:
-                other.rowStop = other.rowStart - 1
+                elif other.colStart== self.colStart and other.colStart== 0: # OK
+                    self.colStop = self.colStart   
+
+            ## self and other on top row (cube)
+            elif self.rowStart == other.rowStart == 6: # OK
+                self.rowStop = self.rowStart - 1
                 colIncrement = random.choice([0,1])
-                other.colStop = other.colStart + colIncrement
+                self.colStop = self.colStart + colIncrement
 
-            ## self and other not on bottom or top cube
+            ## self and other on same row, not on bottom or top cube
             else:
                 rowIncrement = random.choice([-1,1])
-                #other.row += rowIncrement
-                other.rowStop = other.rowStart + random.choice([-1,1])
-                ## self is to the left
-                if self.colStart< other.colStart:
-                    if rowIncrement == -1:
-                        #other.col += 0
-                        other.colStop = other.colStart
-                    else:
-                        #other.col -= 1
-                        other.colStop = other.colStart - 1
+                self.rowStop = self.rowStart + rowIncrement # OK
 
-                ## self is to the right
-                else:
+                ## other is to the left
+                if other.colStart < self.colStart: # OK
                     if rowIncrement == -1:
-                        #other.col += 1
-                        other.colStop = other.colStart + 1
+                        self.colStop = self.colStart + random.choice([0,1])
                     else:
-                        #other.col += 0
-                        other.colStop = other.colStart
+                        self.colStop = self.colStart - 1
+
+                ## other is to the right
+                elif other.colStart > self.colStart: # OK
+                    if rowIncrement == -1:
+                        self.colStop = self.colStart + 1
+                    else:
+                        self.colStop = self.colStart
+
+                ## on same row and column (on same cube actually)
+                elif other.colStart == self.colStart:
+                    ## on left edge
+                    if other.colStart == 0:
+                        if rowIncrement == -1:
+                            self.colStop = self.colStart + random.choice([0,1])
+                        else:
+                            self.colStop = self.colStart 
+                    ## on right edge
+                    elif self.onRightEdge():
+                        if rowIncrement == -1:
+                            self.colStop = self.colStart + random.choice([0,1])
+                        else:
+                            self.colStop = self.colStart - 1
+                    else:
+                        ## not on left or right edge
+                        if rowIncrement == -1:
+                            self.colStop = self.colStart + random.choice([0,1])
+                        else:
+                            self.colStop = self.colStart + random.choice([-1,0])
+
 
 
     def onRightEdge(self):
@@ -184,26 +210,21 @@ class Player(object):
     def isCollision(self, other):
         return ((self.rowStop, self.colStop) == (other.rowStop, other.colStop))
 
-    def bounceIteration(self):
+    def bounceIteration(self, other):
+    ## other is only necessary for call to followMove
+    ## self is enemy, other is qbert
         if (self.drawCount == 1):  
                 self.drawCount += 1   
-                self.randomMove()      
+                if self.name != 'snake':
+                    self.randomMove() 
+                else:
+                    self.followMove(other)
         elif self.drawCount > 1 and self.drawCount < 11:
             self.drawCount += 1
         else:
             self.drawCount = 1
             self.rowStart = self.rowStop
             self.colStart = self.colStop
-
-    @staticmethod
-    def cubicBezier(t, p0, p1, p2):
-    ## Bezier curve function and code adapted from 
-    ## https://towardsdatascience.com/bézier-curve-bfffdadea212
-
-    ## returns a point along a cubic bezier curve 
-        px = (1-t)**2*p0[0] + 2*t*(1-t)*p1[0] + t**2*p2[0]
-        py = (1-t)**2*p0[1] + 2*t*(1-t)*p1[1] + t**2*p2[1]
-        return (px, py)
 
     def drawPlayer(self, app, canvas):
 
@@ -225,7 +246,8 @@ class Player(object):
         t = self.bezierIncrements[self.drawCount]
 
         if ((self.name == 'qbert' and self.moveStart) or 
-            self.name == 'redEnemy' or self.name == 'greenEnemy'):
+            self.name == 'redEnemy' or self.name == 'greenEnemy' or
+            self.name == 'snake'):
             (x, y) = Player.cubicBezier(t, p0, p1, p2)
         else:
             (x, y) = p2 
