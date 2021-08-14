@@ -1,3 +1,10 @@
+###############################
+## CS 15112 Term Project
+## Name: Catherine Bernaciak
+## Andrew ID: cbernaci
+## Date: August 13, 2021
+###############################
+
 from cmu_112_graphics import *
 import random
 import player as pl
@@ -35,23 +42,29 @@ def splashScreenMode_redrawAll(app, canvas):
     canvas.create_text(app.width/2, space + 7*dy, 
     text="-10 points for each enemy that hops on you", 
     font=fontMedItalic, fill='white')
+    
     canvas.create_text(app.width/2, space + 9*dy, 
-    text="Press 'a' twice for autoplay, 'space' for manual play", 
+    text="Press 'a' twice for autoplay (once to start autoplay within game),", 
     font=fontMedItalic, fill='DeepPink2')
-    canvas.create_text(app.width/2, space + 11*dy, 
+    
+    canvas.create_text(app.width/2, space + 10*dy, 
+    text="Press 'space' for manual play", 
+    font=fontMedItalic, fill='DeepPink2')
+    
+    canvas.create_text(app.width/2, space + 12*dy, 
     text="Manually move Q*bert by pressing the keys:", 
     font=fontMedItalic, fill='dark orange')
     
-    canvas.create_text(app.width/2, space + 12*dy, 
+    canvas.create_text(app.width/2, space + 13*dy, 
     text="'u' to go up-left'", 
     font=fontMedItalic, fill='dark orange')
-    canvas.create_text(app.width/2, space + 13*dy, 
+    canvas.create_text(app.width/2, space + 14*dy, 
     text="'i' to go up-right'", 
     font=fontMedItalic, fill='dark orange')
-    canvas.create_text(app.width/2, space + 14*dy, 
+    canvas.create_text(app.width/2, space + 15*dy, 
     text="'h' to go down-left'", 
     font=fontMedItalic, fill='dark orange')
-    canvas.create_text(app.width/2, space + 15*dy, 
+    canvas.create_text(app.width/2, space + 16*dy, 
     text="'j' to go down-right'", 
     font=fontMedItalic, fill='dark orange')
 
@@ -97,7 +110,7 @@ def restartApp(app):
     app.roundWon = False
     app.pauseGame = False
     app.gameOver = False
-    app.autoPlay = False
+    #app.autoPlay = False
 
     ## create qbert and creatures
     initializeQbert(app)
@@ -178,12 +191,13 @@ def difficultyCondition(app):
         return(app.greenEnemy.onRightEdge() or app.greenEnemy.colStop==0)
     elif app.round == 4:
         return (app.greenEnemy.onRightEdge() or app.greenEnemy.colStop==0 or
-                app.greenEnemy.row==0)
+                app.greenEnemy.rowStop==0)
     elif app.round == 5:
         return ((app.greenEnemy.rowStop, app.greenEnemy.colStop) != (6,0))
 
 def setTopColor(app, row, col):
 ## returns the color of the top of the cube located at row, col
+
     ## if greenEnemy touched one of qberts squares (according to difficulty)
     if ((row, col) in app.qbert.path and
         (row, col) == (app.greenEnemy.rowStop, app.greenEnemy.colStop) and
@@ -265,7 +279,7 @@ def drawRoundWon(app, canvas):
                        fill = 'white',
                        font = 'Helvetica 24 bold')
     canvas.create_text(app.width//2, app.height//8 + app.height//28,
-                       text = f'Press Enter to continue...',
+                       text = f'Press Enter to continue or a for autoplay...',
                        fill = 'white',
                        font = 'Helvetica 24 bold')
 
@@ -312,7 +326,8 @@ def gameMode_keyPressed(app, event):
 
     ## if autoplay is selected/unselected
     if event.key == 'a':
-        app.autoPlay = not app.autoPlay
+        #app.autoPlay = not app.autoPlay
+        app.qbert.autoPlay = not app.qbert.autoPlay
 
     ## if game is not paused, continue
     if not app.pauseGame and not app.gameOver:
@@ -358,6 +373,7 @@ def gameMode_keyPressed(app, event):
             
 def gameMode_timerFired(app):    
     if not app.pauseGame and not app.gameOver:
+
         ## if score goes negative, game is over (temp stop after level 1 finished)
         if app.score < 0 or app.round > 5:
             app.gameOver = True
@@ -382,13 +398,14 @@ def gameMode_timerFired(app):
         ## otherwise game continues    
         else:
             ## if game on autplay, qbert makes an AI move
-            if app.autoPlay:
-                app.qbert.bounceIteration(app.snake) # other parameter 
-                app.qbert.autoplay() ## updates rowStop, colStop 
-                if ((app.qbert.rowStop, app.qbert.colStop) != 
+            if app.qbert.autoPlay:
+                app.qbert.bounceIteration(app.snake, app) # other parameter 
+                if app.qbert.drawCount == len(app.qbert.bezierIncrements):
+                    if ((app.qbert.rowStop, app.qbert.colStop) != 
                         (app.qbert.rowStart, app.qbert.colStart) and
                         (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path):
-                            app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop)) 
+                        app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop))      
+                        print(app.qbert.path) 
             ## not on autoplay, move comes from keyPressed
             else:
                 ## increment qberts path along bezier curve
@@ -404,19 +421,13 @@ def gameMode_timerFired(app):
                     if ((app.qbert.rowStop, app.qbert.colStop) != 
                         (app.qbert.rowStart, app.qbert.colStart) and
                         (app.qbert.rowStop, app.qbert.colStop) not in app.qbert.path):
-                            app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop))       
+                        app.qbert.path.append((app.qbert.rowStop, app.qbert.colStop))       
             #print(app.qbert.path)
 
             ## increment enemies path along bezier curve
-            app.redEnemy.bounceIteration(app.qbert)
-            app.greenEnemy.bounceIteration(app.qbert)
-            app.snake.bounceIteration(app.qbert)
-
-            ## if enemy goes onto cube qbert is on deduct points
-            if (app.qbert.isCollision(app.redEnemy) or
-                app.qbert.isCollision(app.greenEnemy) or
-                app.qbert.isCollision(app.snake)):
-                app.score -=10
+            # app.redEnemy.bounceIteration(app.qbert, app)
+            # app.greenEnemy.bounceIteration(app.qbert, app)
+            # app.snake.bounceIteration(app.qbert, app)
 
 
 def gameMode_redrawAll(app, canvas):
@@ -424,14 +435,14 @@ def gameMode_redrawAll(app, canvas):
     drawPyramid(app, canvas)
     app.qbert.drawPlayer(app, canvas)
 
-    if app.redEnemy.alive:
-        app.redEnemy.drawPlayer(app, canvas)
+    # if app.redEnemy.alive:
+    #     app.redEnemy.drawPlayer(app, canvas)
 
-    if app.greenEnemy.alive:
-        app.greenEnemy.drawPlayer(app, canvas)
+    # if app.greenEnemy.alive:
+    #     app.greenEnemy.drawPlayer(app, canvas)
 
-    if app.snake.alive:
-        app.snake.drawPlayer(app, canvas)
+    # if app.snake.alive:
+    #     app.snake.drawPlayer(app, canvas)
 
     if app.roundWon:
         drawRoundWon(app, canvas)

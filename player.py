@@ -14,6 +14,10 @@ class Player(object):
         return (px, py)
 
     @staticmethod
+    def distance(x0,y0,x1,y1):
+        return ((x0-x1)**2 + (y0-y1)**2)**0.5
+    
+    @staticmethod
     def findMaxDir(directionCnt):
         maxDir = ''
         maxLen = 0
@@ -67,6 +71,7 @@ class Player(object):
         self.colStop = colStop
         self.path = []
         self.rad = 0
+        self.autoPlay = False
         self.color = ''
         self.alive = True
         self.drawCount = 1
@@ -79,7 +84,7 @@ class Player(object):
     def __repr__(self):
         return f'{self.name}'
 
-    def randomMove(self):
+    def randomMove(self, other, app):
     ## piece makes a single random move depending on it's current location
         ## on top cube
         if self.rowStart== 6: 
@@ -136,7 +141,11 @@ class Player(object):
                         self.colStop = self.colStart + random.choice([0,1])
         self.moveStart = False
 
-    def followMove(self, other):
+        ## test for collision
+        if (self.isCollision(other)):
+            app.score -=10
+
+    def followMove(self, other, app):
     ## self follows other
     ## usage would be: app.snake.followMove(self)
     ## updates others row and col with legal move that gets it closer to self
@@ -147,7 +156,6 @@ class Player(object):
 
         ## other is above
         if other.rowStart > self.rowStart:
-            #self.row += 1
             self.rowStop = self.rowStart + 1
 
             ## other is to the left
@@ -240,6 +248,10 @@ class Player(object):
                             self.colStop = self.colStart + random.choice([0,1])
                         else:
                             self.colStop = self.colStart + random.choice([-1,0])
+        
+        ## test for collision
+        if (self.isCollision(other)):
+            app.score -=10
 
     def onRightEdge(self):
         onRightEdge = ((self.rowStart== 6 and self.colStart== 0) or
@@ -252,20 +264,19 @@ class Player(object):
         return onRightEdge
 
     def isCollision(self, other):
+    ## checks for collision (same row col location)
         return ((self.rowStop, self.colStop) == (other.rowStop, other.colStop))
 
-    def bounceIteration(self, other):
+    def bounceIteration(self, other, app):
     ## performs one iteration along the path from start to stop location
-    ## other is only necessary for call to followMove
-    ## self is enemy, other is qbert
         if (self.drawCount == 1):  
                 self.drawCount += 1   
                 if self.name == 'redEnemy' or self.name == 'greenEnemy':
-                    self.randomMove() 
+                    self.randomMove(other, app) 
                 elif self.name == 'snake':
-                    self.followMove(other)
+                    self.followMove(other, app)
                 else:
-                    self.autoplay()
+                    self.autoplay(other, app)
 
         elif self.drawCount > 1 and self.drawCount < 11:
             self.drawCount += 1
@@ -273,45 +284,72 @@ class Player(object):
             self.drawCount = 1
             self.rowStart = self.rowStop
             self.colStart = self.colStop
+    
+    
+    
+    def getDirection(self, app):
+    ## in the case where there are no untouched cubes along any legal direction,
+    ## increment row,col along direction with closest untouched cube
 
-    
-    
-    def autoplay(self):
-    ## update qberts location (rowStop, colStop) based on path and enemy location
-    ## in general, want to move along path with most untouched squares and most
-    ## enemies (bc killing them gives points) with each step. but this fxn currently
-    ## ignores enemies bc no time to implement that feature
+        ## loop through all cubes and find untouched cube with lowest distance
+        ## increment row,col along that direction
+        ## app.cubeTopMapping --> app.cubeTopMapping[(row,col)] = (cx, cy)
+
+        curDist = 0
+        bestDist = 0
+        bestRC = ()
+        curRC = ()
+
+        for row in range(0,7):
+            for col in range(0,7-row):
+                if (row,col) in self.path:
+                    pass
+
+
+
+    def autoplay(self, other, app):
+    ## update qberts location (rowStop, colStop) based on path 
+    ## in general, want to move along path with most untouched squares 
         nLR = nLL = 0    
-        dirCnt = {}  #dirCnt[direction] = count
+        dirCnt = {}  #dirCnt[direction] = count (num untouched cubes along dir )
         row = self.rowStart
         col = self.colStart
         qbertPath = set(self.path)
     
-        ## 1 find set of all untouched cubes
+        ## 0 find set of all untouched cubes
         #openCubes = app.allCubes.difference(set(self.path))
 
-        ## 2. find direction with most untouched cubes 
+        ## 1. find direction with most untouched cubes 
         ## look in each direction and count number of untouched squares
 
         ## qbert on left side:
         if self.colStart == 0:
-            ## left bottom corner cube - DONE
+            ## left bottom corner cube (hard-coded as only one choice to move)
             if self.rowStart == 0:
                 self.rowStop = 1
                 self.colStop = 0
-            ## top cube - DONE
+            ## top cube  - row hardcoded, column chosen by best path 
+            ## can't get stuck on top cube bc there is randomness 
             elif self.rowStart == 6:
                 self.rowStop = 5
-                cubesLL = Player.generateCubeList(6,0,'LL')
-                cubesLR = Player.generateCubeList(6,0,'LR')
-                nLL = len(cubesLL) - len(qbertPath.intersection(set(cubesLL)))
-                nLR = len(cubesLR) - len(qbertPath.intersection(set(cubesLR)))
-                if nLL > nLR:
-                    self.colStop = 0
-                elif nLL < nLR:
-                    self.colStop = 1
+                ## if first move, pick colStop at random
+                if len(self.path) == 0:
+                    print ("here!")
+                    inc = random.choice([0,1])
+                    print("increment = ", inc)
+                    self.colStop = col + inc
+                ## if not first move, pick based on best path
                 else:
-                    self.colStop = col + random.choice([0,1])
+                    cubesLL = Player.generateCubeList(6,0,'LL')
+                    cubesLR = Player.generateCubeList(6,0,'LR')
+                    nLL = len(cubesLL) - len(qbertPath.intersection(set(cubesLL)))
+                    nLR = len(cubesLR) - len(qbertPath.intersection(set(cubesLR)))
+                    if nLL > nLR:
+                        self.colStop = 0
+                    elif nLL < nLR:
+                        self.colStop = 1
+                    else:
+                        self.colStop = col + random.choice([0,1])
             ## on left side, not top or bottom cube - DONE
             else:
                 cubesLL = Player.generateCubeList(row, col, 'LL')
@@ -323,16 +361,21 @@ class Player(object):
                             len(qbertPath.intersection(set(cubesUR)))
                 dirCnt['LR'] = len(cubesLR) - \
                             len(qbertPath.intersection(set(cubesLR)))
-                maxDir = Player.findMaxDir(dirCnt)
-                if maxDir == 'LL':
-                    self.rowStop = self.rowStart - 1
-                    self.colStop = self.colStart
-                elif maxDir == 'UR':
-                    self.rowStop = self.rowStart + 1
-                    self.colStop = self.colStart
-                elif maxDir == 'LR':
-                    self.rowStop = self.rowStart - 1
-                    self.colStop = self.colStart + 1
+                ## if there are no untouched cubes along legal directions
+                if not any(v > 0 for v in iter(dirCnt.values())):
+                    self.getDirection(app)
+                ## else get direction with most untouched cubes, if tie, random
+                else:
+                    maxDir = Player.findMaxDir(dirCnt)
+                    if maxDir == 'LL':
+                        self.rowStop = self.rowStart - 1
+                        self.colStop = self.colStart
+                    elif maxDir == 'UR':
+                        self.rowStop = self.rowStart + 1
+                        self.colStop = self.colStart
+                    elif maxDir == 'LR':
+                        self.rowStop = self.rowStart - 1
+                        self.colStop = self.colStart + 1
         ## qbert on right side
         elif self.onRightEdge():
             ## right bottom corner cube - DONE
@@ -402,13 +445,30 @@ class Player(object):
             elif maxDir == 'UR':
                 self.rowStop = self.rowStart + 1
                 self.colStop = self.colStart 
-
-    ## 4. if nothing along any direction, identify closest open square and go to it
-
-
     
-    
-    
+        ## 4. if nothing along any direction, identify closest open 
+        ## square and go to it
+            #self.closestOpen()
+
+        ## increment score 
+        if (self.rowStop, self.colStop) not in self.path:
+            app.score += 50
+
+        ## check for collision
+        ## test for collision
+        if (self.isCollision(other)):
+            app.score -=10
+
+        ## add location to path
+        # if ((self.rowStop, self.colStop) != 
+        #     (self.rowStart, self.colStart) and
+        #     (self.rowStop, self.colStop) not in self.path):
+        #     self.path.append((self.rowStop, self.colStop))   
+        # print("start: ", (self.rowStart, self.colStart)) 
+        # print("stop: ", (self.rowStop, self.colStop)) 
+        # print(self.path)
+
+  
     def drawPlayer(self, app, canvas):
         r = self.rad
         xStart, yStart = app.cubeTopMapping[(self.rowStart, 
@@ -428,6 +488,7 @@ class Player(object):
         t = self.bezierIncrements[self.drawCount]
 
         if ((self.name == 'qbert' and self.moveStart) or 
+            (self.name == 'qbert' and not self.moveStart and self.autoPlay) or
             self.name == 'redEnemy' or self.name == 'greenEnemy' or
             self.name == 'snake'):
             (x, y) = Player.cubicBezier(t, p0, p1, p2)
