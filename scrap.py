@@ -1,3 +1,5 @@
+import random
+
 def distance(x0, y0, x1, y1):
         return ((x0-x1)**2 + (y0-y1)**2)**0.5
 
@@ -30,14 +32,17 @@ mapping = {(0, 0): (201.5, 471.75), (0, 1): (263.5, 471.75),
            (4, 2): (449.5, 285.75), (5, 0): (356.5, 239.25), 
            (5, 1): (418.5, 239.25), (6, 0): (387.5, 192.75)}
 
-path = [(5, 1), (4, 1), (3, 1), (2, 1), (1, 1), (0, 1), 
-        (1, 0), (2, 0), (3, 0), (4, 0), (2, 2), (1, 2), 
-        (2, 3), (3, 2), (1, 4), (0, 4), (0, 3), 
- #       (1, 3), (2, 3), (3, 2), (1, 4), (0, 4), (0, 3), 
-
-        (0, 2), (5, 0), (0, 0), (6, 0), (4, 2), (3, 3), 
-        (1, 5), (0, 5)]
- #       (2, 4), (1, 5), (0, 5)]
+path = [(6, 0), (5, 0), (4, 0), (3, 0), (2, 0), (1, 0), (0,0),
+        (5, 1), (4, 1), (3, 1), (2, 1), (1, 1), (0, 1), 
+        (3, 2), (2, 2), (1, 2), 
+        (3, 3), (2, 3), (1, 3), (0, 3),
+        (2, 4), (1, 4), (0, 4), 
+        (1, 5), (0, 5),
+        (0,6)]
+       
+          
+           
+       
     
 
 print("mapping == ", mapping)
@@ -77,11 +82,64 @@ def getDirection(rowStart, colStart):
                         bestRC = (row,col)
         
         ## now determine rowStop and colStop that get approach bestRC
-        ## if on same row, to left or right
-        ## if above, to left or right
-        ## if below, to left or right
+        
+        ## if on same row
+        if bestRC[0] == rowStart:
+            ## if on bottom row, rowStart can only increase
+            if rowStart == 0:
+                rowStop = rowStart + 1
+                ## if to the right
+                if bestRC[1] >= colStart:
+                    colStop = colStart
+                ## if to the left
+                else:
+                    colStop = colStart - 1
+            ## if on middle row, can go down/up 
+            else:
+                rowIncrement = random.choice([-1,1])
+                rowStop = rowStart + rowIncrement
+                ## if go down a row
+                if rowIncrement == -1:
+                    ## if to the right
+                    if bestRC[1] > colStart:
+                        colStop = colStart +1
+                    ## if to the left
+                    else:
+                        colStop = colStart
+                ## if go up a row
+                else:
+                    ## if to the right
+                    if bestRC[1] > colStart:
+                        colStop = colStart
+                    ## if to the left
+                    else:
+                        colStop = colStart -1
 
-        return bestRC
+        ## if above, must increment row by 1
+        elif bestRC[0] > rowStart:
+            rowStop = rowStart + 1
+            ## if to the left
+            if bestRC[1] < colStart:
+                colStop = colStart - 1
+            ## if to the right
+            else:
+                colStop = colStart
+
+        ## if below, must decrement row by 1
+        elif bestRC[0] < rowStart:
+            rowStop = rowStart - 1
+
+            ## if to the left
+            if bestRC[1] < colStart:
+                colStop = colStart - 1
+            ## if to the right
+            else:
+                colStop = colStart
+
+        print("best row, col = ", bestRC)
+        print("move to row: ", (rowStop, colStop))
+
+        return (rowStop, colStop)
                     
         # rowStop = bestRC[0]
         # colStop = bestRC[1]

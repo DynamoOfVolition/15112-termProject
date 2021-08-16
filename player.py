@@ -290,23 +290,79 @@ class Player(object):
     def getDirection(self, app):
     ## in the case where there are no untouched cubes along any legal direction,
     ## increment row,col along direction with closest untouched cube
-
-        ## loop through all cubes and find untouched cube with lowest distance
+        
+        ## loop through all cubes and find closest untouched cube 
         ## increment row,col along that direction
-        ## app.cubeTopMapping --> app.cubeTopMapping[(row,col)] = (cx, cy)
-
         curDist = 0
-        bestDist = 0
+        bestDist = 775
         bestRC = ()
-        curRC = ()
 
+        ## find which open cube is the closest to qbert
+        (x0,y0) = app.cubeTopMapping[(self.rowStart,self.colStart)]
         for row in range(0,7):
-            for col in range(0,7-row):
-                if (row,col) in self.path:
-                    pass
+            for col in range(0,7-row):               
+                if (row,col) not in self.path:
+                    (x1,y1) = app.cubeTopMapping[(row,col)]
+                    curDist = Player.distance(x0, y0, x1, y1)
+                    if curDist < bestDist:
+                        bestDist = curDist
+                        bestRC = (row,col)
+        
+        ## determine rowStop and colStop that approach bestRC
+        
+        ## if on same row
+        if bestRC[0] == self.rowStart:
+            ## if on bottom row, rowStart can only increase
+            if self.rowStart == 0:
+                self.rowStop = self.rowStart + 1
+                ## if to the right
+                if bestRC[1] >= self.colStart:
+                    self.colStop = self.colStart
+                ## if to the left
+                else:
+                    colStop = self.colStart - 1
+            ## if on middle row, can go down/up 
+            else:
+                rowIncrement = random.choice([-1,1])
+                self.rowStop = self.rowStart + rowIncrement
+                ## if go down a row
+                if rowIncrement == -1:
+                    ## if to the right
+                    if bestRC[1] > self.colStart:
+                        self.colStop = self.colStart +1
+                    ## if to the left
+                    else:
+                        self.colStop = self.colStart
+                ## if go up a row
+                else:
+                    ## if to the right
+                    if bestRC[1] > self.colStart:
+                        self.colStop = self.colStart
+                    ## if to the left
+                    else:
+                        self.colStop = self.colStart -1
 
+        ## if above, must increment row by 1
+        elif bestRC[0] > self.rowStart:
+            self.rowStop = self.rowStart + 1
+            ## if to the left
+            if bestRC[1] < self.colStart:
+                self.colStop = self.colStart - 1
+            ## if to the right
+            else:
+                self.colStop = self.colStart
 
+        ## if below, must decrement row by 1
+        elif bestRC[0] < self.rowStart:
+            self.rowStop = self.rowStart - 1
 
+            ## if to the left
+            if bestRC[1] < self.colStart:
+                self.colStop = self.colStart - 1
+            ## if to the right
+            else:
+                self.colStop = self.colStart
+                    
     def autoplay(self, other, app):
     ## update qberts location (rowStop, colStop) based on path 
     ## in general, want to move along path with most untouched squares 
@@ -316,10 +372,7 @@ class Player(object):
         col = self.colStart
         qbertPath = set(self.path)
     
-        ## 0 find set of all untouched cubes
-        #openCubes = app.allCubes.difference(set(self.path))
-
-        ## 1. find direction with most untouched cubes 
+        ## find direction with most untouched cubes 
         ## look in each direction and count number of untouched squares
 
         ## qbert on left side:
@@ -334,9 +387,7 @@ class Player(object):
                 self.rowStop = 5
                 ## if first move, pick colStop at random
                 if len(self.path) == 0:
-                    print ("here!")
                     inc = random.choice([0,1])
-                    print("increment = ", inc)
                     self.colStop = col + inc
                 ## if not first move, pick based on best path
                 else:
@@ -393,16 +444,21 @@ class Player(object):
                             len(qbertPath.intersection(set(cubesUL)))
                 dirCnt['LR'] = len(cubesLR) - \
                             len(qbertPath.intersection(set(cubesLR)))
-                maxDir =Player.findMaxDir(dirCnt)
-                if maxDir == 'LL':
-                    self.rowStop = self.rowStart - 1
-                    self.colStop = self.colStart
-                elif maxDir == 'UL':
-                    self.rowStop = self.rowStart + 1
-                    self.colStop = self.colStart - 1
-                elif maxDir == 'LR':
-                    self.rowStop = self.rowStart - 1
-                    self.colStop = self.colStart + 1
+                ## if there are no untouched cubes along legal directions
+                if not any(v > 0 for v in iter(dirCnt.values())):
+                    self.getDirection(app)
+                ## else get direction with most untouched cubes, if tie, random
+                else:
+                    maxDir = Player.findMaxDir(dirCnt)
+                    if maxDir == 'LL':
+                        self.rowStop = self.rowStart - 1
+                        self.colStop = self.colStart
+                    elif maxDir == 'UL':
+                        self.rowStop = self.rowStart + 1
+                        self.colStop = self.colStart - 1
+                    elif maxDir == 'LR':
+                        self.rowStop = self.rowStart - 1
+                        self.colStop = self.colStart + 1
         ## bottom row
         elif self.rowStart == 0:
             cubesUL = Player.generateCubeList(row, col, 'UL')
@@ -411,13 +467,18 @@ class Player(object):
                         len(qbertPath.intersection(set(cubesUL)))
             dirCnt['UR'] = len(cubesUR) - \
                         len(qbertPath.intersection(set(cubesUR)))
-            maxDir =Player.findMaxDir(dirCnt)
-            if maxDir == 'UL':
-                    self.rowStop = self.rowStart + 1
-                    self.colStop = self.colStart - 1
-            elif maxDir == 'UR':
-                    self.rowStop = self.rowStart + 1
-                    self.colStop = self.colStart 
+            ## if there are no untouched cubes along legal directions
+            if not any(v > 0 for v in iter(dirCnt.values())):
+                self.getDirection(app)
+            ## else get direction with most untouched cubes, if tie, random
+            else:
+                maxDir =Player.findMaxDir(dirCnt)
+                if maxDir == 'UL':
+                        self.rowStop = self.rowStart + 1
+                        self.colStop = self.colStart - 1
+                elif maxDir == 'UR':
+                        self.rowStop = self.rowStart + 1
+                        self.colStop = self.colStart 
         ## interior
         else:
             cubesLL = Player.generateCubeList(row, col, 'LL')
@@ -432,23 +493,24 @@ class Player(object):
                         len(qbertPath.intersection(set(cubesLR)))
             dirCnt['UR'] = len(cubesUR) - \
                         len(qbertPath.intersection(set(cubesUR)))
-            maxDir =Player.findMaxDir(dirCnt)
-            if maxDir == 'LL':
-                self.rowStop = self.rowStart - 1
-                self.colStop = self.colStart
-            elif maxDir == 'UL':
-                self.rowStop = self.rowStart + 1
-                self.colStop = self.colStart - 1
-            elif maxDir == 'LR':
-                self.rowStop = self.rowStart - 1
-                self.colStop = self.colStart + 1
-            elif maxDir == 'UR':
-                self.rowStop = self.rowStart + 1
-                self.colStop = self.colStart 
-    
-        ## 4. if nothing along any direction, identify closest open 
-        ## square and go to it
-            #self.closestOpen()
+            ## if there are no untouched cubes along legal directions
+            if not any(v > 0 for v in iter(dirCnt.values())):
+                self.getDirection(app)
+            else:
+            ## else get direction with most untouched cubes, if tie, random
+                maxDir =Player.findMaxDir(dirCnt)
+                if maxDir == 'LL':
+                    self.rowStop = self.rowStart - 1
+                    self.colStop = self.colStart
+                elif maxDir == 'UL':
+                    self.rowStop = self.rowStart + 1
+                    self.colStop = self.colStart - 1
+                elif maxDir == 'LR':
+                    self.rowStop = self.rowStart - 1
+                    self.colStop = self.colStart + 1
+                elif maxDir == 'UR':
+                    self.rowStop = self.rowStart + 1
+                    self.colStop = self.colStart 
 
         ## increment score 
         if (self.rowStop, self.colStop) not in self.path:

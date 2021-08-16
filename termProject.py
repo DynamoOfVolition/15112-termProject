@@ -425,9 +425,9 @@ def gameMode_timerFired(app):
             #print(app.qbert.path)
 
             ## increment enemies path along bezier curve
-            # app.redEnemy.bounceIteration(app.qbert, app)
-            # app.greenEnemy.bounceIteration(app.qbert, app)
-            # app.snake.bounceIteration(app.qbert, app)
+            app.redEnemy.bounceIteration(app.qbert, app)
+            app.greenEnemy.bounceIteration(app.qbert, app)
+            app.snake.bounceIteration(app.qbert, app)
 
 
 def gameMode_redrawAll(app, canvas):
@@ -435,14 +435,14 @@ def gameMode_redrawAll(app, canvas):
     drawPyramid(app, canvas)
     app.qbert.drawPlayer(app, canvas)
 
-    # if app.redEnemy.alive:
-    #     app.redEnemy.drawPlayer(app, canvas)
+    if app.redEnemy.alive:
+        app.redEnemy.drawPlayer(app, canvas)
 
-    # if app.greenEnemy.alive:
-    #     app.greenEnemy.drawPlayer(app, canvas)
+    if app.greenEnemy.alive:
+        app.greenEnemy.drawPlayer(app, canvas)
 
-    # if app.snake.alive:
-    #     app.snake.drawPlayer(app, canvas)
+    if app.snake.alive:
+        app.snake.drawPlayer(app, canvas)
 
     if app.roundWon:
         drawRoundWon(app, canvas)
