@@ -557,4 +557,7 @@ class Player(object):
         else:
             (x, y) = p2 
 
-        canvas.create_oval(x-r, y-r, x+r, y+r, fill = self.color, width = 0)
+        if self.name == 'qbert':
+            canvas.create_image(x, y, image=ImageTk.PhotoImage(app.image1))
+        else:
+            canvas.create_oval(x-r, y-r, x+r, y+r, fill = self.color, width = 0)

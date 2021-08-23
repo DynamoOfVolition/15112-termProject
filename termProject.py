@@ -128,6 +128,9 @@ def appStarted(app):
     
     app.timerDelay = 50
     app.mode = 'splashScreenMode'
+
+    app.image1 = app.loadImage('qbert_down_left.png')
+
     
     ## cube 
     ## ... coords of top corner of top cube surface 
