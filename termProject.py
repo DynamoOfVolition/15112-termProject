@@ -129,9 +129,17 @@ def appStarted(app):
     app.timerDelay = 50
     app.mode = 'splashScreenMode'
 
-    app.image1 = app.loadImage('qbert_down_left.png')
-
+    # app.qbertDownLeft = app.loadImage('qbert_down_left.png')
+    # app.qbertDownRight = app.loadImage('qbert_down_right.png')
+    # app.qbertUpLeft = app.loadImage('qbert_up_left.png')
+    # app.qbertUpRight = app.loadImage('qbert_up_right.png')
     
+    
+    app.qbertDownLeft = app.scaleImage(app.loadImage('qbert_down_left.png'), 1.3)
+    app.qbertDownRight = app.scaleImage(app.loadImage('qbert_down_right.png'), 1.3)
+    app.qbertUpLeft = app.scaleImage(app.loadImage('qbert_up_left.png'), 1.3)
+    app.qbertUpRight = app.scaleImage(app.loadImage('qbert_up_right.png'), 1.3)
+
     ## cube 
     ## ... coords of top corner of top cube surface 
     # cx = app.width//2
@@ -368,6 +376,9 @@ def gameMode_keyPressed(app, event):
                 app.qbert.colStop = app.qbert.colStart 
                 updateScore(app)
                 manageCollision(app)
+
+        ## get position of image
+        app.qbert.getPlayerPosition()
 
     ## if game is over, restart
     elif app.gameOver:

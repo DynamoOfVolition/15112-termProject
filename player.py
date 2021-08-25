@@ -69,6 +69,7 @@ class Player(object):
         self.colStart = colStart
         self.rowStop = rowStop
         self.colStop = colStop
+        self.position = ''
         self.path = []
         self.rad = 0
         self.autoPlay = False
@@ -83,6 +84,18 @@ class Player(object):
 
     def __repr__(self):
         return f'{self.name}'
+
+    def getPlayerPosition(self):
+        if self.rowStop < self.rowStart:
+            if self.colStop == self.colStart:
+                self.position = 'downLeft'
+            elif self.colStop > self.colStart:
+                self.position = 'downRight'
+        elif self.rowStop > self.rowStart:
+            if self.colStop == self.colStart:
+                self.position = 'upRight'
+            elif self.colStop < self.colStart:
+                self.position = 'upLeft'
 
     def randomMove(self, other, app):
     ## piece makes a single random move depending on it's current location
@@ -144,6 +157,9 @@ class Player(object):
         ## test for collision
         if (self.isCollision(other)):
             app.score -=10
+
+        ## get position of image
+        #self.getPlayerPosition()
 
     def followMove(self, other, app):
     ## self follows other
@@ -253,6 +269,9 @@ class Player(object):
         if (self.isCollision(other)):
             app.score -=10
 
+        ## get position of image
+            #self.getPlayerPosition()
+
     def onRightEdge(self):
         onRightEdge = ((self.rowStart== 6 and self.colStart== 0) or
                        (self.rowStart== 5 and self.colStart== 1) or
@@ -285,9 +304,12 @@ class Player(object):
             self.rowStart = self.rowStop
             self.colStart = self.colStop
     
-    
-    
     def getDirection(self, app):
+    ## WHERE IT'S USED:
+    ## used in autoplay feature to choose which direction qbert should move in
+    ## WHAT IS DOES:
+    ## this fxn updates rowStop and colStop
+    ## HOW IT WORKS:
     ## in the case where there are no untouched cubes along any legal direction,
     ## increment row,col along direction with closest untouched cube
         
@@ -362,7 +384,7 @@ class Player(object):
             ## if to the right
             else:
                 self.colStop = self.colStart
-                    
+                      
     def autoplay(self, other, app):
     ## update qberts location (rowStop, colStop) based on path 
     ## in general, want to move along path with most untouched squares 
@@ -521,6 +543,9 @@ class Player(object):
         if (self.isCollision(other)):
             app.score -=10
 
+        ## get position of image
+        self.getPlayerPosition()
+
         ## add location to path
         # if ((self.rowStop, self.colStop) != 
         #     (self.rowStart, self.colStart) and
@@ -558,6 +583,13 @@ class Player(object):
             (x, y) = p2 
 
         if self.name == 'qbert':
-            canvas.create_image(x, y, image=ImageTk.PhotoImage(app.image1))
+            if self.position == 'downRight':
+                canvas.create_image(x, y, image=ImageTk.PhotoImage(app.qbertDownRight))
+            elif self.position == 'downLeft':
+                canvas.create_image(x, y, image=ImageTk.PhotoImage(app.qbertDownLeft))
+            elif self.position == 'upRight':
+                canvas.create_image(x, y, image=ImageTk.PhotoImage(app.qbertUpRight))  
+            elif self.position == 'upLeft':
+                canvas.create_image(x, y, image=ImageTk.PhotoImage(app.qbertUpLeft))  
         else:
             canvas.create_oval(x-r, y-r, x+r, y+r, fill = self.color, width = 0)
